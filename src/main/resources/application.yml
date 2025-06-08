@@ -1,0 +1,28 @@
+server:
+  port: 5821
+logging:
+  level:
+    io:
+      modelcontextprotocol:
+        client: DEBUG
+        spec: DEBUG
+
+spring:
+  main:
+    banner-mode: off
+  application:
+    name: graph-server
+  ai:
+    mcp:
+      server:
+        name: graph-server
+        version: 1.0.0
+        type: ASYNC
+        enabled: true
+        sse-endpoint: /sse
+        sse-message-endpoint: /mcp/message
+
+
+
+
+
