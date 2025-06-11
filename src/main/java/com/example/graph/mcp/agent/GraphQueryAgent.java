@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -52,27 +51,30 @@ public class GraphQueryAgent {
     /**
      * 处理用户查询
      */
-    /*public QueryResult processQuery(String userQuery) {
-        log.info("处理用户查询: {}", userQuery);
-
-        try {
-            // 1. 识别查询意图
-            IntentResult intentResult = identifyIntent(userQuery);
-            if (intentResult == null) {
-                return QueryResult.error("无法理解您的查询，请尝试询问共同好友、关系链或合作信息");
-            }
-
-            // 2. 执行相应的查询
-            String result = executeQuery(intentResult);
-
-            // 3. 构建返回结果
-            return QueryResult.success(intentResult.intent, intentResult.entities, result);
-
-        } catch (Exception e) {
-            log.error("查询处理失败", e);
-            return QueryResult.error("查询处理失败: " + e.getMessage());
-        }
-    }*/
+    /*
+     * public QueryResult processQuery(String userQuery) {
+     * log.info("处理用户查询: {}", userQuery);
+     * 
+     * try {
+     * // 1. 识别查询意图
+     * IntentResult intentResult = identifyIntent(userQuery);
+     * if (intentResult == null) {
+     * return QueryResult.error("无法理解您的查询，请尝试询问共同好友、关系链或合作信息");
+     * }
+     * 
+     * // 2. 执行相应的查询
+     * String result = executeQuery(intentResult);
+     * 
+     * // 3. 构建返回结果
+     * return QueryResult.success(intentResult.intent, intentResult.entities,
+     * result);
+     * 
+     * } catch (Exception e) {
+     * log.error("查询处理失败", e);
+     * return QueryResult.error("查询处理失败: " + e.getMessage());
+     * }
+     * }
+     */
 
     /**
      * 识别查询意图
@@ -95,27 +97,27 @@ public class GraphQueryAgent {
     /**
      * 执行查询
      */
-//    private String executeQuery(IntentResult intentResult) throws IOException {
-//        switch (intentResult.intent) {
-//            case MUTUAL_FRIENDS:
-//                return graphService.mutualFriend(intentResult.entities);
-//
-//            case RELATIONSHIP_CHAIN:
-//                if (intentResult.entities.size() >= 2) {
-//                    return graphService.relationChain(
-//                            intentResult.entities.get(0),
-//                            intentResult.entities.get(1));
-//                }
-//                break;
-//
-//            case COLLABORATION:
-//                return graphService.dreamTeam(intentResult.entities);
-//
-//            default:
-//                throw new UnsupportedOperationException("不支持的查询类型: " + intentResult.intent);
-//        }
-//        return null;
-//    }
+    // private String executeQuery(IntentResult intentResult) throws IOException {
+    // switch (intentResult.intent) {
+    // case MUTUAL_FRIENDS:
+    // return graphService.mutualFriend(intentResult.entities);
+    //
+    // case RELATIONSHIP_CHAIN:
+    // if (intentResult.entities.size() >= 2) {
+    // return graphService.relationChain(
+    // intentResult.entities.get(0),
+    // intentResult.entities.get(1));
+    // }
+    // break;
+    //
+    // case COLLABORATION:
+    // return graphService.dreamTeam(intentResult.entities);
+    //
+    // default:
+    // throw new UnsupportedOperationException("不支持的查询类型: " + intentResult.intent);
+    // }
+    // return null;
+    // }
 
     /**
      * 查询意图枚举

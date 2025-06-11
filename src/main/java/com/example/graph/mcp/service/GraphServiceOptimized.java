@@ -95,6 +95,28 @@ public class GraphServiceOptimized extends BaseGraphServiceOptimized {
                 return executeAndProcessQuery(gremlinQuery, params);
         }
 
+        @Tool(name = "friend_similarity", description = "好友相似度")
+        public String friendSimilarity(List<String> names, String relationshipType) throws IOException {
+                validateInput(names);
+                log.debug("Finding friend similarity for {} with relationship type {}", names, relationshipType);
+
+                Map<String, Object> params = createParams(
+                                Map.of("name0", "'" + names.get(0) + "'",
+                                                "name1", "'" + names.get(1) + "'",
+                                                "relationshipType", "'" + relationshipType + "'"));
+
+                String gremlinQuery = String.format(
+                                "g.V().has('%s', 'name', ${name0}).as('a')" +
+                                                ".bothE().has('e_type', ${relationshipType}).otherV().as('a_friends')" +
+                                                ".V().has('%s', 'name', ${name1}).as('b')" +
+                                                ".bothE().has('e_type', ${relationshipType}).otherV().as('b_friends')" +
+                                                ".where('a_friends', eq('b_friends'))" +
+                                                ".dedup().path()",
+                                CELEBRITY_LABEL, CELEBRITY_LABEL);
+
+                return executeAndProcessQuery(gremlinQuery, params);
+        }
+
         /**
          * 创建参数映射
          *
@@ -126,4 +148,5 @@ public class GraphServiceOptimized extends BaseGraphServiceOptimized {
                         throw new IOException("执行查询时发生错误: " + e.getMessage(), e);
                 }
         }
+
 }

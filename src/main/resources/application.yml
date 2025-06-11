@@ -16,12 +16,10 @@ spring:
     mcp:
       server:
         name: graph-server
-        version: 1.0.0
         type: ASYNC
         enabled: true
         sse-endpoint: /sse
         sse-message-endpoint: /mcp/message
-
 
 
 

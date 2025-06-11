@@ -1,0 +1,15 @@
+# 屏蔽测试目录
+**/test/
+**/tests/
+**/__tests__/
+
+# 屏蔽测试文件（按语言扩展名）
+**/*Test.java       # Java 测试类
+**/*Spec.scala      # Scala 测试
+**/*_test.py        # Python 测试
+**/*.spec.ts        # TypeScript 测试
+
+# 屏蔽测试报告和日志
+**/target/surefire-reports/  # Maven 测试报告
+**/build/test-results/       # Gradle 测试结果
+*.log                        # 日志文件

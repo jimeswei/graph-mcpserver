@@ -10,14 +10,24 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class MCPConfig {
 
+    // @Bean
+    // public ToolCallbackProvider taskTools(GraphServiceOptimized
+    // graphServiceOptimized, AlgorithmService algorithmService) {
+    // return
+    // MethodToolCallbackProvider.builder().toolObjects(graphServiceOptimized,
+    // algorithmService).build();
+    // }
     @Bean
-    public ToolCallbackProvider taskTools(GraphServiceOptimized graphServiceOptimized, AlgorithmService algorithmService) {
-        return MethodToolCallbackProvider.builder().toolObjects(graphServiceOptimized, algorithmService).build();
+    public ToolCallbackProvider taskTools(GraphServiceOptimized graphServiceOptimized) {
+        return MethodToolCallbackProvider.builder().toolObjects(graphServiceOptimized).build();
     }
 
-   /* @Bean
-    public List<ToolCallback> tools(GraphServiceOptimized graphServiceOptimized) {
-        return List.of(ToolCallbacks.from(graphServiceOptimized));
-    }*/
+    /*
+     * @Bean
+     * public List<ToolCallback> tools(GraphServiceOptimized graphServiceOptimized)
+     * {
+     * return List.of(ToolCallbacks.from(graphServiceOptimized));
+     * }
+     */
 
 }
