@@ -107,9 +107,11 @@ public class GraphServiceOptimized extends BaseGraphServiceOptimized {
 
                 String gremlinQuery = String.format(
                                 "g.V().has('%s', 'name', ${name0}).as('a')" +
-                                                ".bothE().has('e_type', ${relationshipType}).otherV().as('a_friends')" +
+                                                ".bothE().has('e_type', '${relationshipType}').otherV().as('a_friends')"
+                                                +
                                                 ".V().has('%s', 'name', ${name1}).as('b')" +
-                                                ".bothE().has('e_type', ${relationshipType}).otherV().as('b_friends')" +
+                                                ".bothE().has('e_type', '${relationshipType}').otherV().as('b_friends')"
+                                                +
                                                 ".where('a_friends', eq('b_friends'))" +
                                                 ".dedup().path()",
                                 CELEBRITY_LABEL, CELEBRITY_LABEL);
