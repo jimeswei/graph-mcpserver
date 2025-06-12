@@ -27,7 +27,7 @@ public class GraphServiceOptimized extends BaseGraphServiceOptimized {
          * @return 关系链的JSON响应
          * @throws IOException 如果执行查询时发生错误
          */
-        @Tool(name = "relation_chain", description = "好友关系链")
+        @Tool(name = "relation_chain_between_stars", description = "查询两个明星之间的好友关系链，返回从源明星到目标明星的路径，最多支持4层关系")
         public String relationChain(String sourceName, String targetName) throws IOException {
                 log.debug("Finding relation chain between {} and {}", sourceName, targetName);
 
@@ -51,7 +51,7 @@ public class GraphServiceOptimized extends BaseGraphServiceOptimized {
          * @return 共同好友的JSON响应
          * @throws IOException 如果执行查询时发生错误
          */
-        @Tool(name = "mutual_friend", description = "共同好友")
+        @Tool(name = "mutual_friend_between_stars", description = "查询两个明星之间的共同好友，返回他们共同的好友列表")
         public String mutualFriend(List<String> names) throws IOException {
                 validateInput(names);
                 log.debug("Finding mutual friends for {}", names);
@@ -77,7 +77,7 @@ public class GraphServiceOptimized extends BaseGraphServiceOptimized {
          * @return 共同参演电影的JSON响应
          * @throws IOException 如果执行查询时发生错误
          */
-        @Tool(name = "dream_team", description = "一起合作参演的电影")
+        @Tool(name = "dream_team_common_works", description = "查询多个明星共同参演的电影，返回他们一起合作的作品列表")
         public String dreamTeam(List<String> names) throws IOException {
                 validateInput(names);
                 log.debug("Finding common works for {}", names);
@@ -95,26 +95,23 @@ public class GraphServiceOptimized extends BaseGraphServiceOptimized {
                 return executeAndProcessQuery(gremlinQuery, params);
         }
 
-        @Tool(name = "friend_similarity", description = "好友相似度")
-        public String friendSimilarity(List<String> names, String relationshipType) throws IOException {
+        @Tool(name = "similarity_between_stars", description = "查询多个明星之间的相似度，基于指定的关系类型，返回他们之间的相似关系")
+        public String similarity(List<String> names, String relationshipType) throws IOException {
                 validateInput(names);
-                log.debug("Finding friend similarity for {} with relationship type {}", names, relationshipType);
+                log.debug("Finding similarity for {} with relationship type {}", names, relationshipType);
 
                 Map<String, Object> params = createParams(
-                                Map.of("name0", "'" + names.get(0) + "'",
-                                                "name1", "'" + names.get(1) + "'",
-                                                "relationshipType", "'" + relationshipType + "'"));
+                                Map.of("names", "'" + String.join("','", names) + "'",
+                                                "relationshipType", relationshipType));
 
                 String gremlinQuery = String.format(
-                                "g.V().has('%s', 'name', ${name0}).as('a')" +
-                                                ".bothE().has('e_type', '${relationshipType}').otherV().as('a_friends')"
+                                "g.V().has('%s', 'name', within([${names}])).as('o')" +
+                                                ".bothE().has('e_type', '${relationshipType}').otherV().aggregate('x')"
                                                 +
-                                                ".V().has('%s', 'name', ${name1}).as('b')" +
-                                                ".bothE().has('e_type', '${relationshipType}').otherV().as('b_friends')"
+                                                ".bothE().has('e_type', '${relationshipType}').otherV().where(neq('o'))"
                                                 +
-                                                ".where('a_friends', eq('b_friends'))" +
-                                                ".dedup().path()",
-                                CELEBRITY_LABEL, CELEBRITY_LABEL);
+                                                ".where(bothE().has('e_type', '${relationshipType}').otherV().where(within('x')).dedup().count().is(gt(5))).path()",
+                                CELEBRITY_LABEL);
 
                 return executeAndProcessQuery(gremlinQuery, params);
         }
@@ -127,7 +124,6 @@ public class GraphServiceOptimized extends BaseGraphServiceOptimized {
          */
         private Map<String, Object> createParams(Map<String, Object> params) {
                 Map<String, Object> allParams = new HashMap<>(params);
-                allParams.put("relationshipType", "好友");
                 return allParams;
         }
 
