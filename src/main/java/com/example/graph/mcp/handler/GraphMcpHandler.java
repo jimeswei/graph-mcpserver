@@ -110,6 +110,34 @@ public class GraphMcpHandler {
                 }));
     }
 
+    @PostMapping(value = "/most_recent_common_ancestor", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, Object>> commonAncestor(@RequestBody Map<String, Object> params) {
+        @SuppressWarnings("unchecked")
+        List<String> names = (List<String>) params.get("names");
+        Integer maxDepth = (Integer) params.get("maxDepth");
+
+        try {
+            String result = graphService.commonAncestor(names, maxDepth);
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "COMPLETED");
+            response.put("progress", 100);
+            response.put("data", result);
+            response.put("error", null);
+            response.put("message", "查询共同祖先完成");
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("status", "ERROR");
+            errorResponse.put("progress", 0);
+            errorResponse.put("data", null);
+            errorResponse.put("error", e.getMessage());
+            errorResponse.put("message", "查询共同祖先失败");
+
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+    }
+
     private ResponseEntity<String> executeGremlinRequest(String query, Map<String, Object> params)
             throws JsonProcessingException {
         StringSubstitutor substitutor = new StringSubstitutor(params);
@@ -134,4 +162,5 @@ public class GraphMcpHandler {
             throw new IllegalArgumentException("需要两个有效用户名");
         }
     }
+
 }

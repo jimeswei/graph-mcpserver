@@ -66,4 +66,14 @@ public class QueryResultHandler {
         }
         return result;
     }
+
+    /**
+     * 截断返回结果，最大保留55000字符
+     */
+    public static String truncateResult(String result) {
+        if (result != null && result.length() > 55000) {
+            return result.substring(0, 55000);
+        }
+        return result;
+    }
 }

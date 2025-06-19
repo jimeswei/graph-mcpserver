@@ -4,11 +4,11 @@ spring:
   main:
     banner-mode: off
   application:
-    name: graph-server
+    name: knowledge-graph-algorithrm-service
   ai:
     mcp:
       server:
-        name: graph-server
+        name: knowledge-graph-algorithrm-service
         type: ASYNC
         enabled: true
         sse-endpoint: /sse
