@@ -33,6 +33,7 @@ public class GraphMcpHandler {
 
     private final GraphServiceOptimized graphService;
 
+
     @PostMapping(value = "/relation_chain_between_stars", produces = MediaType.APPLICATION_NDJSON_VALUE)
     public ResponseEntity<Flux<StreamableResponse>> relationChain(@RequestBody Map<String, Object> params) {
         String sourceName = (String) params.get("sourceName");

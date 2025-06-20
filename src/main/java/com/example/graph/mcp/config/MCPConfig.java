@@ -1,16 +1,10 @@
 package com.example.graph.mcp.config;
 
-import com.example.graph.mcp.service.AlgorithmService;
-import com.example.graph.mcp.service.GeneralQueryService;
 import com.example.graph.mcp.service.GraphServiceOptimized;
-import org.springframework.ai.support.ToolCallbacks;
-import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.ai.tool.method.MethodToolCallbackProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import java.util.List;
 
 @Configuration
 public class MCPConfig {
@@ -22,22 +16,20 @@ public class MCPConfig {
     // MethodToolCallbackProvider.builder().toolObjects(graphServiceOptimized,
     // algorithmService).build();
     // }
-/*     @Bean
-     public ToolCallbackProvider taskTools(GraphServiceOptimized graphServiceOptimized) {
-     return MethodToolCallbackProvider.builder().toolObjects(graphServiceOptimized).build();
-     }*/
-
-//    @Bean
-//    public ToolCallbackProvider taskTools(GeneralQueryService generalQueryService) {
-//        return MethodToolCallbackProvider.builder().toolObjects(generalQueryService).build();
-//    }
-
 
      @Bean
+     public ToolCallbackProvider taskTools(GraphServiceOptimized graphServiceOptimized) {
+     return MethodToolCallbackProvider.builder().toolObjects(graphServiceOptimized).build();
+     }
+
+
+
+
+    /* @Bean
      public List<ToolCallback> tools(GraphServiceOptimized graphServiceOptimized)
      {
       return List.of(ToolCallbacks.from(graphServiceOptimized));
-     }
+     }*/
 
 
 }
