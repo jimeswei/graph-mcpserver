@@ -37,15 +37,15 @@ public class GraphServiceOptimized {
                 GremlinQueryUtil.validateInput(names);
                 log.debug("Finding mutual friends for {}", names);
 
-                /*
-                 * Map<String, Object> params = Map.of(
-                 * "name0", "'" + names.get(0) + "'",
-                 * "name1", "'" + names.get(1) + "'");
-                 */
 
                 Map<String, Object> params = Map.of(
-                                "names", "'" + String.join("','", names) + "'");
+                "name0", "'" + names.get(0) + "'",
+                "name1", "'" + names.get(1) + "'");
 
+
+              /*  Map<String, Object> params = Map.of(
+                                "names", "'" + String.join("','", names) + "'");
+*/
                 String gremlinQuery = String.format(MUTUAL_FRIEND_QUERY,
                                 CELEBRITY_LABEL, CELEBRITY_RELATIONSHIP, CELEBRITY_RELATIONSHIP, CELEBRITY_LABEL);
 

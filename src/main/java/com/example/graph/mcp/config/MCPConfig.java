@@ -19,7 +19,7 @@ public class MCPConfig {
 
      @Bean
      public ToolCallbackProvider taskTools(GraphServiceOptimized graphServiceOptimized) {
-     return MethodToolCallbackProvider.builder().toolObjects(graphServiceOptimized).build();
+          return MethodToolCallbackProvider.builder().toolObjects(graphServiceOptimized).build();
      }
 
 
