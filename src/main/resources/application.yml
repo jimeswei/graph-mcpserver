@@ -11,8 +11,13 @@ spring:
         name: knowledge-graph-algorithrm-service
         type: ASYNC
         enabled: true
+        version: 1.0.0
         sse-endpoint: /sse
         sse-message-endpoint: /mcp/message
+        request-timeout: 30000
+       
+
+
 
 
 

@@ -2,6 +2,7 @@ package com.example.graph.mcp.handler;
 
 import com.example.graph.mcp.model.StreamableResponse;
 import com.example.graph.mcp.service.GraphServiceOptimized;
+import com.example.graph.mcp.config.GraphApiConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -27,12 +28,11 @@ import org.springframework.http.HttpMethod;
 @RequiredArgsConstructor
 public class GraphMcpHandler {
 
-    private static final String BASE_URL = "http://192.168.3.78:28080/api/v1.2/graph-connections/1/gremlin-query";
     private static final RestTemplate restTemplate = new RestTemplate();
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     private final GraphServiceOptimized graphService;
-
+    private final GraphApiConfig graphApiConfig;
 
     @PostMapping(value = "/relation_chain_between_stars", produces = MediaType.APPLICATION_NDJSON_VALUE)
     public ResponseEntity<Flux<StreamableResponse>> relationChain(@RequestBody Map<String, Object> params) {
@@ -151,7 +151,7 @@ public class GraphMcpHandler {
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<String> entity = new HttpEntity<>(json, headers);
         ResponseEntity<String> content = restTemplate.exchange(
-                BASE_URL,
+                graphApiConfig.getBaseUrl(),
                 HttpMethod.POST,
                 entity,
                 String.class);
