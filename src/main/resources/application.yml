@@ -15,6 +15,11 @@ spring:
         sse-endpoint: /sse
         sse-message-endpoint: /mcp/message
         request-timeout: 30000
+        capabilities:
+          tool: true
+          resource: true
+          prompt: true
+          completion: true
        
 
 
