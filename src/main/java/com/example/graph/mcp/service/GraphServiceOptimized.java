@@ -5,6 +5,7 @@ import com.example.graph.mcp.util.QueryResultHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
+import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import java.io.IOException;
@@ -18,7 +19,7 @@ public class GraphServiceOptimized {
         private final GremlinQueryUtil gremlinQueryUtil;
 
         @Tool(name = "relation_chain_between_stars", description = "查询两个明星之间的好友关系链，返回从源明星到目标明星的路径，最多支持4层关系, 参数格式：1.sourceName: 人名1，2.targetName: 人名2")
-        public String relationChain(String sourceName, String targetName) throws IOException {
+        public String relationChain(@ToolParam(description = "人名1") String sourceName,@ToolParam(description = "人名2") String targetName) throws IOException {
                 log.debug("Finding relation chain between {} and {}", sourceName, targetName);
 
                 Map<String, Object> params = Map.of(
@@ -33,7 +34,7 @@ public class GraphServiceOptimized {
         }
 
         @Tool(name = "mutual_friend_between_stars", description = "查询两个明星之间的共同好友，返回他们共同的好友列表, 参数格式：names: [人名1, 人名2]")
-        public String mutualFriend(List<String> names) throws IOException {
+        public String mutualFriend(@ToolParam(description = "多个人名，逗号分开，用方括号括起来") List<String> names) throws IOException {
                 GremlinQueryUtil.validateInput(names);
                 log.debug("Finding mutual friends for {}", names);
 
@@ -54,7 +55,7 @@ public class GraphServiceOptimized {
         }
 
         @Tool(name = "dream_team_common_works", description = "查询多个明星共同参演的电影，返回他们一起合作的作品列表，参数格式：1.names: [人名1, 人名2],2.relationshipType: 合作")
-        public String dreamTeam(List<String> names) throws IOException {
+        public String dreamTeam(@ToolParam(description = "多个人名，逗号分开，用方括号括起来") List<String> names) throws IOException {
                 GremlinQueryUtil.validateInput(names);
                 log.debug("Finding common works for {}", names);
 
@@ -70,7 +71,7 @@ public class GraphServiceOptimized {
         }
 
         @Tool(name = "similarity_between_stars", description = "查询多个明星之间的相似度，基于指定的关系类型，返回他们之间的相似关系,参数格式：1.names: [周星驰, 吴孟达], 2.relationshipType: 合作")
-        public String similarity(List<String> names, String relationshipType) throws IOException {
+        public String similarity(@ToolParam(description = "多个人名，逗号分开，用方括号括起来") List<String> names, @ToolParam(description = "边类型，如：合作，好友，搭档等") String relationshipType) throws IOException {
                 GremlinQueryUtil.validateInput(names);
                 log.debug("Finding similarity for {} with relationship type {}", names, relationshipType);
 
@@ -85,7 +86,7 @@ public class GraphServiceOptimized {
         }
 
         @Tool(name = "most_recent_common_ancestor", description = "查询多个明星之间最近共同祖先,参数格式：1.names: [周星驰, 吴孟达], 2.maxDepth: 3 (可选,默认3层)")
-        public String commonAncestor(List<String> names, Integer maxDepth) throws IOException {
+        public String commonAncestor(@ToolParam(description = "多个人名，逗号分开，用方括号括起来") List<String> names,@ToolParam(description = "最大深度") Integer maxDepth) throws IOException {
                 GremlinQueryUtil.validateInput(names);
 
                 // 设置默认深度并验证

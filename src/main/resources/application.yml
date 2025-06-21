@@ -14,7 +14,8 @@ spring:
         version: 1.0.0
         sse-endpoint: /sse
         sse-message-endpoint: /mcp/message
-        request-timeout: 30000
+        request-timeout: 60000
+        max-connections: 100
         capabilities:
           tool: true
           resource: true
