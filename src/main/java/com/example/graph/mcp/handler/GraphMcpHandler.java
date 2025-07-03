@@ -4,35 +4,26 @@ import com.example.graph.mcp.model.StreamableResponse;
 import com.example.graph.mcp.service.GraphServiceOptimized;
 import com.example.graph.mcp.config.GraphApiConfig;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import org.apache.commons.text.StringSubstitutor;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
 
-@Slf4j
 @RestController
 @RequestMapping("/mcp")
 @RequiredArgsConstructor
 public class GraphMcpHandler {
 
-    private static final RestTemplate restTemplate = new RestTemplate();
-    private static final ObjectMapper objectMapper = new ObjectMapper();
-
+    private static final Logger log = LoggerFactory.getLogger(GraphMcpHandler.class);
     private final GraphServiceOptimized graphService;
-    private final GraphApiConfig graphApiConfig;
 
     @PostMapping(value = "/relation_chain_between_stars", produces = MediaType.APPLICATION_NDJSON_VALUE)
     public ResponseEntity<Flux<StreamableResponse>> relationChain(@RequestBody Map<String, Object> params) {
@@ -77,6 +68,11 @@ public class GraphMcpHandler {
         @SuppressWarnings("unchecked")
         List<String> names = (List<String>) params.get("names");
 
+        if (names == null || names.size() < 2) {
+            return ResponseEntity.badRequest()
+                    .body(Flux.just(StreamableResponse.error("需要至少两个有效用户名")));
+        }
+
         return ResponseEntity.ok()
                 .header("X-Streamable-Status", "STARTED")
                 .body(Flux.create(sink -> {
@@ -85,8 +81,10 @@ public class GraphMcpHandler {
                         String result = graphService.dreamTeam(names);
                         sink.next(StreamableResponse.completed(result));
                         sink.complete();
-                    } catch (IOException e) {
-                        sink.error(e);
+                    } catch (Exception e) {
+                        log.error("查询共同作品失败", e);
+                        sink.next(StreamableResponse.error(e.getMessage()));
+                        sink.complete();
                     }
                 }));
     }
@@ -112,11 +110,37 @@ public class GraphMcpHandler {
     }
 
     @PostMapping(value = "/most_recent_common_ancestor", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Map<String, Object>> commonAncestor(@RequestBody Map<String, Object> params) {
+    public ResponseEntity<Mono<Map<String, Object>>> commonAncestor(@RequestBody Map<String, Object> params) {
         @SuppressWarnings("unchecked")
         List<String> names = (List<String>) params.get("names");
         Integer maxDepth = (Integer) params.get("maxDepth");
 
+        // 如果是两个人，使用新的优化查询
+        if (names != null && names.size() == 2) {
+            try {
+                Mono<Map<String, Object>> result = graphService.findCommonAncestorByNames(names.get(0), names.get(1));
+                return ResponseEntity.ok(result.map(data -> {
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("status", "COMPLETED");
+                    response.put("progress", 100);
+                    response.put("data", data);
+                    response.put("error", null);
+                    response.put("message", "查询共同祖先完成");
+                    return response;
+                }));
+            } catch (Exception e) {
+                log.error("查询共同祖先失败", e);
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("status", "ERROR");
+                errorResponse.put("progress", 0);
+                errorResponse.put("data", null);
+                errorResponse.put("error", e.getMessage());
+                errorResponse.put("message", "查询共同祖先失败");
+                return ResponseEntity.badRequest().body(Mono.just(errorResponse));
+            }
+        }
+
+        // 否则使用原有的多人查询逻辑
         try {
             String result = graphService.commonAncestor(names, maxDepth);
             Map<String, Object> response = new HashMap<>();
@@ -126,7 +150,7 @@ public class GraphMcpHandler {
             response.put("error", null);
             response.put("message", "查询共同祖先完成");
 
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(Mono.just(response));
         } catch (Exception e) {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("status", "ERROR");
@@ -135,33 +159,7 @@ public class GraphMcpHandler {
             errorResponse.put("error", e.getMessage());
             errorResponse.put("message", "查询共同祖先失败");
 
-            return ResponseEntity.badRequest().body(errorResponse);
+            return ResponseEntity.badRequest().body(Mono.just(errorResponse));
         }
     }
-
-    private ResponseEntity<String> executeGremlinRequest(String query, Map<String, Object> params)
-            throws JsonProcessingException {
-        StringSubstitutor substitutor = new StringSubstitutor(params);
-        String gremlin = substitutor.replace(query);
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("content", gremlin);
-        String json = objectMapper.writeValueAsString(requestBody);
-        log.info("gremlin: {}", json);
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<String> entity = new HttpEntity<>(json, headers);
-        ResponseEntity<String> content = restTemplate.exchange(
-                graphApiConfig.getBaseUrl(),
-                HttpMethod.POST,
-                entity,
-                String.class);
-        return content;
-    }
-
-    private void validateInput(List<String> names) {
-        if (names == null || names.size() < 2) {
-            throw new IllegalArgumentException("需要两个有效用户名");
-        }
-    }
-
 }
