@@ -27,12 +27,14 @@ public class GremlinQueryUtil {
 
     public ResponseEntity<String> executeGremlinRequest(String query, Map<String, Object> params)
             throws JsonProcessingException {
+        // 直接使用参数进行替换，不再自动添加引号
         StringSubstitutor substitutor = new StringSubstitutor(params);
         String gremlin = substitutor.replace(query);
+        
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("content", gremlin);
         String json = objectMapper.writeValueAsString(requestBody);
-        log.info("gremlin: {}", json);
+        log.debug("gremlin: {}", json);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);

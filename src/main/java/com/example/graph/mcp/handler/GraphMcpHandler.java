@@ -11,19 +11,23 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 @RestController
 @RequestMapping("/mcp")
-@RequiredArgsConstructor
 public class GraphMcpHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GraphMcpHandler.class);
-    private final GraphServiceOptimized graphService;
+    
+    @Autowired
+    private GraphServiceOptimized graphService;
 
     @PostMapping(value = "/relation_chain_between_stars", produces = MediaType.APPLICATION_NDJSON_VALUE)
     public ResponseEntity<Flux<StreamableResponse>> relationChain(@RequestBody Map<String, Object> params) {
@@ -39,7 +43,9 @@ public class GraphMcpHandler {
                         sink.next(StreamableResponse.completed(result));
                         sink.complete();
                     } catch (IOException e) {
-                        sink.error(e);
+                        log.error("查询关系链失败", e);
+                        sink.next(StreamableResponse.error("查询关系链失败: " + e.getMessage()));
+                        sink.complete();
                     }
                 }));
     }
@@ -58,7 +64,9 @@ public class GraphMcpHandler {
                         sink.next(StreamableResponse.completed(result));
                         sink.complete();
                     } catch (IOException e) {
-                        sink.error(e);
+                        log.error("查询共同好友失败", e);
+                        sink.next(StreamableResponse.error("查询共同好友失败: " + e.getMessage()));
+                        sink.complete();
                     }
                 }));
     }
@@ -83,30 +91,57 @@ public class GraphMcpHandler {
                         sink.complete();
                     } catch (Exception e) {
                         log.error("查询共同作品失败", e);
-                        sink.next(StreamableResponse.error(e.getMessage()));
+                        sink.next(StreamableResponse.error("查询共同作品失败: " + e.getMessage()));
                         sink.complete();
                     }
                 }));
     }
 
-    @PostMapping(value = "/similarity_between_stars", produces = MediaType.APPLICATION_NDJSON_VALUE)
-    public ResponseEntity<Flux<StreamableResponse>> similarity(@RequestBody Map<String, Object> params) {
+    @PostMapping(value = "/similarity_between_stars", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Object> similarity(@RequestBody Map<String, Object> params) {
         @SuppressWarnings("unchecked")
         List<String> names = (List<String>) params.get("names");
         String relationshipType = (String) params.get("relationshipType");
 
-        return ResponseEntity.ok()
-                .header("X-Streamable-Status", "STARTED")
-                .body(Flux.create(sink -> {
-                    try {
-                        sink.next(StreamableResponse.started("开始查询相似度"));
-                        String result = graphService.similarity(names, relationshipType);
-                        sink.next(StreamableResponse.completed(result));
-                        sink.complete();
-                    } catch (IOException e) {
-                        sink.error(e);
-                    }
-                }));
+        if (names == null || names.size() < 2) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "需要至少两个有效用户名"));
+        }
+
+        try {
+            // 执行查询，获取原始结果
+            String result = graphService.similarity(names, relationshipType);
+            
+            // 解析并提取简化的数据格式
+            ObjectMapper mapper = new ObjectMapper();
+            Map<String, Object> jsonResult = mapper.readValue(result, Map.class);
+            
+            // 检查查询是否成功
+            if (jsonResult.get("status").equals(200)) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> data = (Map<String, Object>) jsonResult.get("data");
+                @SuppressWarnings("unchecked")
+                Map<String, Object> jsonView = (Map<String, Object>) data.get("json_view");
+                @SuppressWarnings("unchecked")
+                List<Object> resultData = (List<Object>) jsonView.get("data");
+                
+                // 直接返回简化的数据数组
+                return ResponseEntity.ok(resultData);
+            } else {
+                // 查询失败时返回错误信息
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", jsonResult.get("message")));
+            }
+            
+        } catch (Exception e) {
+            log.error("查询相似度失败", e);
+            String errorMessage = e.getMessage();
+            if (errorMessage != null && errorMessage.contains("Unrecognized token")) {
+                errorMessage = "查询结果格式错误，请检查查询语句和参数";
+            }
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "查询相似度失败: " + errorMessage));
+        }
     }
 
     @PostMapping(value = "/most_recent_common_ancestor", produces = MediaType.APPLICATION_JSON_VALUE)

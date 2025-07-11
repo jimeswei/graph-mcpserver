@@ -1,28 +1,26 @@
 package com.example.graph.mcp.service;
 
 import com.example.graph.mcp.constant.GraphConstants;
-import com.example.graph.mcp.util.GremlinQueryUtil;
-import com.example.graph.mcp.util.QueryResultHandler;
-import com.example.graph.mcp.util.JsonExtractor;
+import com.example.graph.mcp.util.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
+
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
+
 import static com.example.graph.mcp.constant.GraphConstants.*;
 
 @Service
 public class GraphServiceOptimized {
 
-    private static final Logger log = LoggerFactory.getLogger(GraphServiceOptimized.class);
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(GraphServiceOptimized.class);
 
     @Autowired
     private GremlinQueryUtil gremlinQueryUtil;
@@ -32,109 +30,83 @@ public class GraphServiceOptimized {
     @Tool(name = "relation_chain_between_stars", description = "查询两个明星之间的好友关系链，返回从源明星到目标明星的路径，最多支持4层关系, 参数格式：1.sourceName: 人名1，2.targetName: 人名2")
     public String relationChain(@ToolParam(description = "人名1") String sourceName,
                               @ToolParam(description = "人名2") String targetName) throws IOException {
-        if (sourceName == null || targetName == null || sourceName.trim().isEmpty() || targetName.trim().isEmpty()) {
-            throw new IllegalArgumentException("源名字和目标名字都不能为空");
-        }
+        validateNames(sourceName, targetName);
         log.debug("Finding relation chain between {} and {}", sourceName, targetName);
 
-        Map<String, Object> params = Map.of(
-            "sourceName", sourceName,
-            "targetName", targetName
-        );
-
-        String gremlinQuery = String.format(RELATION_CHAIN_QUERY,
-            CELEBRITY_LABEL,           // 起点标签
-            CELEBRITY_RELATIONSHIP,    // 关系类型
-            CELEBRITY_LABEL,          // 终点标签
-            MAX_RELATION_CHAIN_DEPTH,  // 最大深度
-            CELEBRITY_LABEL           // 终点标签（用于最后的过滤）
-        );
-
-        ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
+        Map<String, Object> params = new HashMap<>();
+        params.put("sourceName", sourceName);
+        params.put("targetName", targetName);
+        String gremlinQuery = buildRelationChainQuery();
         
-        // 使用专门的路径结果处理器
-        String optimizedResult = QueryResultHandler.processPathQueryResult(response);
-        return QueryResultHandler.truncateResult(optimizedResult);
+        ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
+        return QueryResultHandler.truncateResult(GraphResultFormatter.formatRelationChain(response));
     }
 
     @Tool(name = "mutual_friend_between_stars", description = "查询两个明星之间的共同好友，返回他们共同的好友列表, 参数格式：names: [人名1, 人名2]")
     public String mutualFriend(@ToolParam(description = "多个人名，逗号分开，用方括号括起来") List<String> names) throws IOException {
-        GremlinQueryUtil.validateInput(names);
-        if (names.size() < 2) {
-            throw new IllegalArgumentException("需要至少两个人名");
-        }
+        validateMinimumNames(names, 2);
         log.debug("Finding mutual friends for {}", names);
 
-        Map<String, Object> params = Map.of(
-            "name0", "'" + names.get(0) + "'",
-            "name1", "'" + names.get(1) + "'"
-        );
+        Map<String, Object> params = new HashMap<>();
+        params.put("name0", "'" + names.get(0) + "'");
+        params.put("name1", "'" + names.get(1) + "'");
 
-        String gremlinQuery = String.format(MUTUAL_FRIEND_QUERY,
-                        CELEBRITY_LABEL,           // 节点标签
-                        CELEBRITY_RELATIONSHIP,    // 第一个both关系
-                        CELEBRITY_RELATIONSHIP,    // where中的both关系
-                        CELEBRITY_LABEL,          // where中的标签
-                        CELEBRITY_RELATIONSHIP,    // 第一个inE关系
-                        CELEBRITY_LABEL,          // 第一个where条件的标签
-                        CELEBRITY_RELATIONSHIP,    // 第二个inE关系
-                        CELEBRITY_LABEL           // 第二个where条件的标签
-        );
-
+        String gremlinQuery = buildMutualFriendQuery();
         ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
-        
-        // 使用专门的共同好友结果处理器
-        String optimizedResult = QueryResultHandler.processMutualFriendsResult(response);
-        return QueryResultHandler.truncateResult(optimizedResult);
+        return QueryResultHandler.truncateResult(GraphResultFormatter.formatMutualFriends(response));
     }
 
     @Tool(name = "dream_team_common_works", description = "查询多个明星共同参演的电影，返回他们一起合作的作品列表，参数格式：1.names: [人名1, 人名2],2.relationshipType: 合作")
     public String dreamTeam(@ToolParam(description = "多个人名，逗号分开，用方括号括起来") List<String> names) throws IOException {
-        if (names == null || names.isEmpty()) {
-            throw new IllegalArgumentException("名字列表不能为空");
-        }
-        if (names.size() < 2) {
-            throw new IllegalArgumentException("需要至少两个名字才能查询共同作品");
-        }
-        
+        validateMinimumNames(names, 2);
         log.debug("Finding common works for {}", names);
 
-        Map<String, Object> params = Map.of(
-                        "names", "'" + String.join("','", names) + "'");
-
-        String gremlinQuery = String.format(DREAM_TEAM_QUERY,
-                        CELEBRITY_LABEL, WORK_LABEL, CELEBRITY_WORK_RELATIONSHIP,
-                        CELEBRITY_EVENT_RELATIONSHIP, names.size());
-
+        Map<String, Object> params = buildDreamTeamParams(names);
+        String gremlinQuery = buildDreamTeamQuery(names);
+        
+        log.debug("Generated dream team query: {}", gremlinQuery);
+        log.debug("Query parameters: {}", params);
+        
         ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
         
-        // 使用通用的图查询结果处理器
-        String optimizedResult = QueryResultHandler.processGraphQueryResult(response);
-        return QueryResultHandler.truncateResult(optimizedResult);
+        // 调试原始响应数据
+        log.debug("Dream team raw response: {}", response.getBody());
+        
+        return QueryResultHandler.truncateResult(GraphResultFormatter.formatCommonWorks(response));
     }
 
     @Tool(name = "similarity_between_stars", description = "查询多个明星之间的相似度，基于指定的关系类型，返回他们之间的相似关系,参数格式：1.names: [周星驰, 吴孟达], 2.relationshipType: 合作")
-    public String similarity(@ToolParam(description = "多个人名，逗号分开，用方括号括起来") List<String> names, @ToolParam(description = "边类型，如：合作，好友，搭档等") String relationshipType) throws IOException {
-        GremlinQueryUtil.validateInput(names);
+    public String similarity(@ToolParam(description = "多个人名，逗号分开，用方括号括起来") List<String> names, 
+                           @ToolParam(description = "边类型，如：合作，好友，搭档等") String relationshipType) throws IOException {
+        validateMinimumNames(names, 2);
+        
+        // 修复null参数问题
+        if (relationshipType == null || relationshipType.trim().isEmpty()) {
+            relationshipType = "合作"; // 默认关系类型
+        }
+        
         log.debug("Finding similarity for {} with relationship type {}", names, relationshipType);
 
-        Map<String, Object> params = Map.of(
-                        "names", "'" + String.join("','", names) + "'",
-                        "relationshipType", relationshipType);
+        Map<String, Object> params = new HashMap<>();
+        params.put("name1", "'" + names.get(0) + "'");
+        params.put("name2", "'" + names.get(1) + "'");
+        params.put("relationshipType", relationshipType);
 
-        String gremlinQuery = String.format(SIMILARITY_QUERY, CELEBRITY_LABEL);
-
-        ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
+        String gremlinQuery = buildSimilarityQuery();
+        log.debug("Generated similarity query: {}", gremlinQuery);
+        log.debug("Query parameters: {}", params);
         
-        // 使用通用的图查询结果处理器
-        String optimizedResult = QueryResultHandler.processGraphQueryResult(response);
-        return QueryResultHandler.truncateResult(optimizedResult);
+        ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
+        log.debug("Raw similarity response: {}", response.getBody());
+        
+        // 直接返回图数据库的原始查询结果，不进行格式化处理
+        return response.getBody();
     }
 
     @Tool(name = "most_recent_common_ancestor", description = "查询多个明星之间最近共同祖先,参数格式：1.names: [周星驰, 吴孟达], 2.maxDepth: 3 (可选,默认3层)")
     public String commonAncestor(@ToolParam(description = "多个人名，逗号分开，用方括号括起来") List<String> names,
             @ToolParam(description = "最大深度") Integer maxDepth) throws IOException {
-        GremlinQueryUtil.validateInput(names);
+        validateMinimumNames(names, 2);
 
         // 如果只有两个人，使用优化的两人查询
         if (names.size() == 2) {
@@ -145,23 +117,7 @@ public class GraphServiceOptimized {
         int depth = (maxDepth != null && maxDepth > 0 && maxDepth <= MAX_ANCESTOR_DEPTH) ? maxDepth : DEFAULT_ANCESTOR_DEPTH;
         log.debug("Finding common ancestors for {} within {} layers", names, depth);
 
-        String gremlinQuery = buildCommonAncestorQuery(names, depth);
-        Map<String, Object> params = buildQueryParams(names);
-
-        try {
-            ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
-            String optimizedResult = QueryResultHandler.processGraphQueryResult(response);
-
-            if (optimizedResult == null || optimizedResult.trim().isEmpty() || "[]".equals(optimizedResult.trim())) {
-                log.info("No common ancestors found for {} within {} layers", names, depth);
-                return buildNoAncestorFoundResponse(names, depth);
-            }
-
-            return QueryResultHandler.truncateResult(optimizedResult);
-        } catch (Exception e) {
-            log.error("Error finding common ancestors for {}: {}", names, e.getMessage());
-            throw new IOException("查询共同祖先时发生错误: " + e.getMessage(), e);
-        }
+        return executeCommonAncestorQuery(names, depth);
     }
 
     /**
@@ -579,5 +535,112 @@ public class GraphServiceOptimized {
         result.put("found", false);
         result.put("message", message);
         return result;
+    }
+    
+    // ====== 新增的优化辅助方法 ======
+    
+    /**
+     * 验证两个名字参数
+     */
+    private void validateNames(String sourceName, String targetName) {
+        if (sourceName == null || targetName == null || 
+            sourceName.trim().isEmpty() || targetName.trim().isEmpty()) {
+            throw new IllegalArgumentException("源名字和目标名字都不能为空");
+        }
+    }
+    
+    /**
+     * 验证名字列表的最小数量
+     */
+    private void validateMinimumNames(List<String> names, int minCount) {
+        if (names == null || names.isEmpty()) {
+            throw new IllegalArgumentException("名字列表不能为空");
+        }
+        
+        // 检查每个名字是否有效
+        for (int i = 0; i < names.size(); i++) {
+            String name = names.get(i);
+            if (name == null || name.trim().isEmpty()) {
+                throw new IllegalArgumentException(String.format("第%d个名字不能为空", i + 1));
+            }
+        }
+        
+        if (names.size() < minCount) {
+            throw new IllegalArgumentException(String.format("需要至少 %d 个人名", minCount));
+        }
+    }
+    
+    /**
+     * 构建关系链查询语句
+     */
+    private String buildRelationChainQuery() {
+        return String.format(RELATION_CHAIN_QUERY,
+            CELEBRITY_LABEL, CELEBRITY_RELATIONSHIP, CELEBRITY_LABEL,
+            MAX_RELATION_CHAIN_DEPTH, CELEBRITY_LABEL);
+    }
+    
+    /**
+     * 构建共同好友查询语句
+     */
+    private String buildMutualFriendQuery() {
+        return String.format(MUTUAL_FRIEND_QUERY,
+            CELEBRITY_LABEL, CELEBRITY_RELATIONSHIP, CELEBRITY_RELATIONSHIP,
+            CELEBRITY_LABEL, CELEBRITY_RELATIONSHIP, CELEBRITY_LABEL,
+            CELEBRITY_RELATIONSHIP, CELEBRITY_LABEL);
+    }
+    
+    /**
+     * 构建共同作品查询语句
+     */
+    private String buildDreamTeamQuery(List<String> names) {
+        return DREAM_TEAM_QUERY;
+    }
+    
+    /**
+     * 构建共同作品查询参数
+     */
+    private Map<String, Object> buildDreamTeamParams(List<String> names) {
+        if (names.size() < 2) {
+            throw new IllegalArgumentException("需要至少两个人名");
+        }
+
+        Map<String, Object> params = new HashMap<>();
+        
+        // 设置第一个明星名字
+        params.put("names[0]", names.get(0));
+        
+        // 构建其他明星的名字列表
+        List<String> otherNames = names.subList(1, names.size());
+        String otherNamesStr = otherNames.stream()
+                .map(name -> "'" + name + "'")  // 添加单引号
+                .collect(Collectors.joining(","));
+        
+        params.put("other_names", otherNamesStr);
+        params.put("other_names_count", String.valueOf(otherNames.size()));
+        
+        return params;
+    }
+    
+    /**
+     * 构建相似度查询语句
+     */
+    private String buildSimilarityQuery() {
+        return SIMILARITY_QUERY;
+    }
+    
+    /**
+     * 执行共同祖先查询
+     */
+    private String executeCommonAncestorQuery(List<String> names, int depth) throws IOException {
+        String gremlinQuery = buildCommonAncestorQuery(names, depth);
+        Map<String, Object> params = buildQueryParams(names);
+
+        try {
+            ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
+            return QueryResultHandler.truncateResult(GraphResultFormatter.formatCommonAncestor(response));
+        } catch (Exception e) {
+            log.error("Error finding common ancestors for {}: {}", names, e.getMessage());
+            return buildNoAncestorFoundResponse(names, depth);
+        }
     }
 }

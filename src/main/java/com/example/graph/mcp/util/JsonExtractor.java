@@ -60,9 +60,33 @@ public class JsonExtractor {
     }
 
     public static String parseResponse(String json) throws IOException {
+        if (json == null || json.trim().isEmpty()) {
+            return "[]";
+        }
+        
         JsonNode rootNode = mapper.readTree(json);
-        JsonNode dataNode = rootNode.path("data").path("json_view").path("data");
-        return dataNode.toString(); // 返回指定节点的JSON字符串
+        
+        // 如果根节点是数组，直接返回
+        if (rootNode.isArray()) {
+            return rootNode.toString();
+        }
+        
+        // 如果根节点是对象，尝试获取data.json_view.data
+        JsonNode dataNode = rootNode.path("data");
+        if (!dataNode.isMissingNode()) {
+            JsonNode jsonViewNode = dataNode.path("json_view");
+            if (!jsonViewNode.isMissingNode()) {
+                JsonNode jsonDataNode = jsonViewNode.path("data");
+                if (!jsonDataNode.isMissingNode()) {
+                    return jsonDataNode.toString();
+                }
+            }
+            // 如果data字段存在但没有json_view，直接返回data
+            return dataNode.toString();
+        }
+        
+        // 如果都不匹配，返回原始对象
+        return rootNode.toString();
     }
 
     public static String parseGraphView(String json) throws IOException {

@@ -2,6 +2,9 @@ server:
   port: 5821
 logging:
   level:
+    com:
+      example:
+        graph: DEBUG
     io:
       modelcontextprotocol:
         client: DEBUG

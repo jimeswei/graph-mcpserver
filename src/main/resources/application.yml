@@ -21,6 +21,7 @@ spring:
           resource: true
           prompt: true
           completion: true
+        port: 5822
        
 
 

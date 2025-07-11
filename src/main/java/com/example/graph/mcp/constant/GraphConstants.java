@@ -22,92 +22,114 @@ public class GraphConstants {
         public static final int MAX_RELATION_CHAIN_DEPTH = 4;
 
         // Gremlin 查询模板
-        public static final String RELATION_CHAIN_QUERY = "g.V().has('%s', 'name', '${sourceName}')" +
+        public static final String RELATION_CHAIN_QUERY = "g.V().hasLabel('%s').where(values('name').is(within([${sourceName}])))" +
                         ".repeat(both('%s')" +
                         ".simplePath()" +  // 避免环路
                         ".where(without('visited'))" +
                         ".aggregate('visited'))" +
-                        ".until(has('%s', 'name', '${targetName}')" +
+                        ".until(hasLabel('%s').where(values('name').is(within([${targetName}])))" +
                         ".or()" +
                         ".loops().is(%d))" +
-                        ".has('%s', 'name', '${targetName}')" +  // 确保最后一个节点是目标
+                        ".hasLabel('%s').where(values('name').is(within([${targetName}])))" +  // 确保最后一个节点是目标
                         ".path()" +
-                        ".by(valueMap('name', 'profession'))" +  // 返回节点的基本信息
-                        ".by(valueMap('weight', 'relationship_type'))" +  // 返回边的信息
+                        ".by(valueMap('celebrity_id', 'name', 'profession'))" +  // 返回节点的基本信息
+                        ".by(valueMap('weight', 'e_type'))" +  // 返回边的信息
                         ".limit(5)";  // 限制返回的路径数量
 
-        public static final String MUTUAL_FRIEND_QUERY = "g.V().has('%s', 'name', ${name0})" +
+        public static final String MUTUAL_FRIEND_QUERY = "g.V().hasLabel('%s').where(values('name').is(within([${name0}])))" +
                         ".both('%s').as('friends')" +
-                        ".both('%s').has('%s', 'name', ${name1})" +
+                        ".both('%s').hasLabel('%s').where(values('name').is(within([${name1}])))" +
                         ".select('friends')" +
                         ".dedup()" +
                         ".project('commonFriend', 'relationships')" +
-                        ".by(valueMap('name', 'profession'))" +
-                        ".by(union(__.inE('%s').where(outV().has('%s', 'name', ${name0}))," +
-                        "__.inE('%s').where(outV().has('%s', 'name', ${name1})))" +
-                        ".valueMap('weight', 'relationship_type'))";
+                        ".by(valueMap('celebrity_id', 'name', 'profession'))" +
+                        ".by(union(__.inE('%s').where(outV().hasLabel('%s').where(values('name').is(within([${name0}]))))," +
+                        "__.inE('%s').where(outV().hasLabel('%s').where(values('name').is(within([${name1}])))))" +
+                        ".valueMap('weight', 'e_type'))";
 
-        public static final String DREAM_TEAM_QUERY = "g.V().has('%s', 'name', within([${names}])).aggregate('stars')" +
-                        ".V().hasLabel('%s')" +
-                        ".where(__.in('%s', '%s').where(within('stars')).count().is(%d)).dedup().path()";
+        public static final String DREAM_TEAM_QUERY = 
+            "g.V().hasLabel('celebrity').where(values('name').is(within([${names[0]}]))).as('star1')" +  // 从第一个明星开始
+            ".outE('celebrity_work').as('role1')" +  // 获取与作品的关系
+            ".inV().as('work')" +  // 进入作品节点
+            ".where(" +
+            "__.in('celebrity_work')" +  // 查找所有参与该作品的明星
+            ".where(values('name').is(within([${other_names}])))" +  // 必须包含列表中的所有其他明星
+            ".count().is(${other_names_count})" +  // 确保所有其他明星都参与了
+            ")" +
+            ".valueMap('title', 'release_date', 'work_type')" +  // 获取作品的核心信息
+            ".dedup()";  // 去重
 
-        public static final String SIMILARITY_QUERY = "g.V().has('%s', 'name', within([${names}])).as('o')" +
-                        ".bothE().has('e_type', '${relationshipType}').otherV().aggregate('x')" +
-                        ".bothE().has('e_type', '${relationshipType}').otherV().where(neq('o'))" +
-                        ".where(bothE().has('e_type', '${relationshipType}').otherV().where(within('x')).dedup().count().is(gt(5))).path()";
+        public static final String SIMILARITY_QUERY = 
+            "g.V().hasLabel('celebrity').where(values('name').is(within([${name1}]))).as('p1')" +
+            ".union(" +
+                // 共同作品
+                "out('celebrity_work').as('works')" +
+                ".in('celebrity_work').where(values('name').is(within([${name2}])))" +
+                ".select('works').valueMap('title', 'release_date', 'work_type')," +
+                
+                // 共同活动
+                "out('celebrity_event').as('events')" +
+                ".in('celebrity_event').where(values('name').is(within([${name2}])))" +
+                ".select('events').valueMap('event_name', 'event_date', 'event_type')," +
+                
+                // 共同好友
+                "both('celebrity_celebrity').as('friends')" +
+                ".both('celebrity_celebrity').where(values('name').is(within([${name2}])))" +
+                ".select('friends').valueMap('celebrity_id', 'name', 'profession')" +
+            ")";
 
-        public static final String NODES_BY_NAMES_QUERY = "g.V().has('celebrity', 'name', within([${names}])).as('center')"
+        public static final String NODES_BY_NAMES_QUERY = "g.V().hasLabel('celebrity').where(values('name').is(within([${names}]))).as('center')"
                         +
                         ".both('celebrity_celebrity').as('partner')" +
                         ".select('center','partner')" +
-                        ".by(valueMap('celebrity_id','name','profession','company','nationality'))";
+                        ".by(valueMap('celebrity_id','name','profession'))";
 
-        public static final String EDGES_BY_NAMES_QUERY = "g.V().has('celebrity', 'name', within([${names}])).bothE('celebrity_celebrity')"
+        public static final String EDGES_BY_NAMES_QUERY = "g.V().hasLabel('celebrity').where(values('name').is(within([${names}]))).bothE('celebrity_celebrity')"
                         +
                         ".as('e').otherV().as('other')" +
                         ".select('e','other').by(valueMap()).by(valueMap('name'))";
 
-        public static final String NODES_EDGES_BY_NAMES_QUERY = "g.V().has('celebrity', 'name', within([${names}])).bothE('celebrity_celebrity')";
+        public static final String NODES_EDGES_BY_NAMES_QUERY = "g.V().hasLabel('celebrity').where(values('name').is(within([${names}]))).bothE('celebrity_celebrity')";
 
         // 共同祖先查询模板 - 优先查找祖父母级别的祖先
         public static final String COMMON_ANCESTOR_TWO_PERSON_QUERY = 
-            "g.V().has('%s', 'name', '${person1}').as('p1')" +
+            "g.V().hasLabel('%s').where(values('name').is(within([${person1}]))).as('p1')" +
             ".in('%s').in('%s').as('grandparent1')" +  // 查找祖父母
-            ".V().has('%s', 'name', '${person2}').as('p2')" +
+            ".V().hasLabel('%s').where(values('name').is(within([${person2}]))).as('p2')" +
             ".in('%s').in('%s').as('grandparent2')" +  // 查找祖父母
             ".where('grandparent1', eq('grandparent2'))" +
             ".select('p1', 'p2', 'grandparent1')" +
             ".by(values('name'))" +
             ".by(values('name'))" +
-            ".by(valueMap('name', 'profession', 'celebrity_id').by(unfold()))" +
+            ".by(valueMap('celebrity_id', 'name', 'profession').by(unfold()))" +
             ".dedup()";
 
         // 如果没找到祖父母级别的，查找父母级别的共同祖先
         public static final String COMMON_ANCESTOR_PARENT_LEVEL_QUERY = 
-            "g.V().has('%s', 'name', '${person1}').as('p1')" +
+            "g.V().hasLabel('%s').where(values('name').is(within([${person1}]))).as('p1')" +
             ".in('%s').as('parent1')" +
-            ".V().has('%s', 'name', '${person2}').as('p2')" +
+            ".V().hasLabel('%s').where(values('name').is(within([${person2}]))).as('p2')" +
             ".in('%s').as('parent2')" +
             ".where('parent1', eq('parent2'))" +
             ".select('p1', 'p2', 'parent1')" +
             ".by(values('name'))" +
             ".by(values('name'))" +
-            ".by(valueMap('name', 'profession', 'celebrity_id').by(unfold()))" +
+            ".by(valueMap('celebrity_id', 'name', 'profession').by(unfold()))" +
             ".dedup()";
 
         // 添加新的查询模板用于ID查询
         public static final String COMMON_ANCESTOR_TWO_PERSON_BY_ID_QUERY =
-            "g.V(['${person1_id}', '${person2_id}']).as('start')" +
+            "g.V([${person1_id}, ${person2_id}]).as('start')" +
             ".in('%s').dedup().as('parent')" +
             ".in('%s').dedup().as('grandparent')" +
             ".project('children', 'ancestor')" +
             ".by(select('start').values('name').fold())" +
             ".by(coalesce(" +
-                "select('parent').valueMap('name', 'profession', 'celebrity_id').by(unfold())," +
-                "select('grandparent').valueMap('name', 'profession', 'celebrity_id').by(unfold())" +
+                "select('parent').valueMap('celebrity_id', 'name', 'profession').by(unfold())," +
+                "select('grandparent').valueMap('celebrity_id', 'name', 'profession').by(unfold())" +
             "))";
 
-        public static final String COMMON_ANCESTOR_MULTI_PERSON_QUERY_PREFIX = "g.V().has('%s', 'name', '${person%d}')"
+        public static final String COMMON_ANCESTOR_MULTI_PERSON_QUERY_PREFIX = "g.V().hasLabel('%s').where(values('name').is(within([${person%d}])))"
                         +
                         ".repeat(__.in('%s').simplePath()).emit().times(%d)" +
                         ".id().fold().as('ancestors%d')";
@@ -122,12 +144,12 @@ public class GraphConstants {
 
         // 家庭关系过滤的共同祖先查询模板 - 只使用e_type属性
         public static final String FAMILY_COMMON_ANCESTOR_GRANDPARENT_QUERY = 
-            "g.V().has('%s', 'name', '${person1}').as('p1')" +
+            "g.V().hasLabel('%s').where(values('name').is(within([${person1}]))).as('p1')" +
             ".inE('%s').where(has('e_type', within(['父子', '母子', '父女', '母女', '亲子', '家人', 'family', '儿子', '女儿', '父亲', '母亲', '爸爸', '妈妈'])))" +
             ".outV().as('parent1')" +
             ".inE('%s').where(has('e_type', within(['父子', '母子', '父女', '母女', '亲子', '家人', 'family', '儿子', '女儿', '父亲', '母亲', '爸爸', '妈妈'])))" +
             ".outV().as('grandparent1')" +
-            ".V().has('%s', 'name', '${person2}').as('p2')" +
+            ".V().hasLabel('%s').where(values('name').is(within([${person2}]))).as('p2')" +
             ".inE('%s').where(has('e_type', within(['父子', '母子', '父女', '母女', '亲子', '家人', 'family', '儿子', '女儿', '父亲', '母亲', '爸爸', '妈妈'])))" +
             ".outV().as('parent2')" +
             ".inE('%s').where(has('e_type', within(['父子', '母子', '父女', '母女', '亲子', '家人', 'family', '儿子', '女儿', '父亲', '母亲', '爸爸', '妈妈'])))" +
@@ -136,29 +158,29 @@ public class GraphConstants {
             ".select('p1', 'p2', 'grandparent1')" +
             ".by(values('name'))" +
             ".by(values('name'))" +
-            ".by(valueMap('name', 'profession', 'celebrity_id').by(unfold()))" +
+            ".by(valueMap('celebrity_id', 'name', 'profession').by(unfold()))" +
             ".dedup()";
 
         public static final String FAMILY_COMMON_ANCESTOR_PARENT_QUERY = 
-            "g.V().has('%s', 'name', '${person1}').as('p1')" +
+            "g.V().hasLabel('%s').where(values('name').is(within([${person1}]))).as('p1')" +
             ".inE('%s').where(has('e_type', within(['父子', '母子', '父女', '母女', '亲子', '家人', 'family', '儿子', '女儿', '父亲', '母亲', '爸爸', '妈妈'])))" +
             ".outV().as('parent1')" +
-            ".V().has('%s', 'name', '${person2}').as('p2')" +
+            ".V().hasLabel('%s').where(values('name').is(within([${person2}]))).as('p2')" +
             ".inE('%s').where(has('e_type', within(['父子', '母子', '父女', '母女', '亲子', '家人', 'family', '儿子', '女儿', '父亲', '母亲', '爸爸', '妈妈'])))" +
             ".outV().as('parent2')" +
             ".where('parent1', eq('parent2'))" +
             ".select('p1', 'p2', 'parent1')" +
             ".by(values('name'))" +
             ".by(values('name'))" +
-            ".by(valueMap('name', 'profession', 'celebrity_id').by(unfold()))" +
+            ".by(valueMap('celebrity_id', 'name', 'profession').by(unfold()))" +
             ".dedup()";
 
         // 调试查询 - 检查某人的所有关系类型
         public static final String DEBUG_PERSON_RELATIONSHIPS_QUERY = 
-            "g.V().has('%s', 'name', '${person}')" +
+            "g.V().hasLabel('%s').where(values('name').is(within([${person}])))" +
             ".bothE('%s')" +
             ".project('direction', 'otherPerson', 'edgeProperties')" +
-            ".by(choose(inV().has('%s', 'name', '${person}'), constant('incoming'), constant('outgoing')))" +
+            ".by(choose(inV().hasLabel('%s').where(values('name').is(within([${person}]))), constant('incoming'), constant('outgoing')))" +
             ".by(otherV().values('name'))" +
             ".by(valueMap())";
 }
