@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 
 import java.io.IOException;
@@ -18,15 +20,24 @@ import java.util.*;
 public class GraphResultFormatter {
     
     private static final ObjectMapper mapper = new ObjectMapper();
+    private static final Logger log = LoggerFactory.getLogger(GraphResultFormatter.class);
     
     /**
      * 格式化关系链查询结果
      */
     public static String formatRelationChain(ResponseEntity<String> response) throws IOException {
         String detailsJson = JsonExtractor.parseResponse(response.getBody());
-        JsonNode root = mapper.readTree(detailsJson);
+        System.out.println("=== DEBUG: Raw response body ===");
+        System.out.println(response.getBody());
+        System.out.println("=== DEBUG: Parsed details JSON ===");
+        System.out.println(detailsJson);
         
-        return buildGraphResult(extractRelationChainData(root));
+        JsonNode root = mapper.readTree(detailsJson);
+        System.out.println("=== DEBUG: Root JsonNode ===");
+        System.out.println(root.toString());
+        
+        // 直接返回简洁的路径和长度格式
+        return buildSimplePathResult(root);
     }
     
     /**
@@ -116,13 +127,13 @@ public class GraphResultFormatter {
         ObjectNode node = mapper.createObjectNode();
         
         // 创建数组格式的属性值
-        if (vertex.name != null) {
+        if (vertex.name != null && !vertex.name.trim().isEmpty()) {
             ArrayNode titleArray = mapper.createArrayNode();
             titleArray.add(vertex.name);
             node.set("title", titleArray);
         }
         
-        if (vertex.description != null) {
+        if (vertex.description != null && !vertex.description.trim().isEmpty()) {
             ArrayNode descArray = mapper.createArrayNode();
             descArray.add(vertex.description);
             node.set("description", descArray);
@@ -169,36 +180,65 @@ public class GraphResultFormatter {
     private static GraphData extractRelationChainData(JsonNode root) {
         Set<Vertex> vertices = new LinkedHashSet<>();
         List<Edge> edges = new ArrayList<>();
+        int pathLength = 0;
         
-        if (root.isArray()) {
-            for (JsonNode path : root) {
-                if (path.has("objects") && path.get("objects").isArray()) {
-                    JsonNode objects = path.get("objects");
-                    
-                    // 提取顶点
-                    for (JsonNode obj : objects) {
-                        Vertex vertex = createVertex(obj);
-                        if (vertex != null) {
-                            vertices.add(vertex);
-                        }
+        if (root.isArray() && root.size() > 0) {
+            JsonNode firstResult = root.get(0);
+            
+            // 获取路径长度
+            if (firstResult.has("length")) {
+                pathLength = firstResult.get("length").asInt();
+            }
+            
+            // 获取路径数据 - 处理新的简化格式
+            JsonNode pathData = firstResult.has("path") ? firstResult.get("path") : firstResult;
+            
+            // 处理简化的路径格式（只包含名字的数组）
+            if (pathData.isArray()) {
+                // 提取顶点
+                for (JsonNode nameNode : pathData) {
+                    String name = nameNode.asText();
+                    if (name != null && !name.trim().isEmpty()) {
+                        vertices.add(new Vertex(name, null, null, null, null, null));
                     }
+                }
+                
+                // 提取边
+                for (int i = 0; i < pathData.size() - 1; i++) {
+                    String from = pathData.get(i).asText();
+                    String to = pathData.get(i + 1).asText();
                     
-                    // 提取边
-                    for (int i = 0; i < objects.size() - 1; i++) {
-                        String from = extractStringValue(objects.get(i), "name");
-                        String to = extractStringValue(objects.get(i + 1), "name");
-                        String type = extractStringValue(objects.get(i), "relationship_type", "好友");
-                        
-                        if (from != null && to != null) {
-                            edges.add(new Edge(from, to, type, null));
-                        }
+                    if (from != null && to != null) {
+                        edges.add(new Edge(from, to, "好友", null));
+                    }
+                }
+            }
+            // 处理原有的复杂格式（包含objects的格式）
+            else if (pathData.has("objects") && pathData.get("objects").isArray()) {
+                JsonNode objects = pathData.get("objects");
+                
+                // 提取顶点
+                for (JsonNode obj : objects) {
+                    Vertex vertex = createVertex(obj);
+                    if (vertex != null) {
+                        vertices.add(vertex);
+                    }
+                }
+                
+                // 提取边
+                for (int i = 0; i < objects.size() - 1; i++) {
+                    String from = extractStringValue(objects.get(i), "name");
+                    String to = extractStringValue(objects.get(i + 1), "name");
+                    String type = extractStringValue(objects.get(i), "relationship_type", "好友");
+                    
+                    if (from != null && to != null) {
+                        edges.add(new Edge(from, to, type, null));
                     }
                 }
             }
         }
         
-        String summary = String.format("找到 %d 条关系路径，包含 %d 个节点", 
-                                       edges.size() > 0 ? 1 : 0, vertices.size());
+        String summary = String.format("找到最短路径，需要经过 %d 个人", pathLength);
         return new GraphData(new ArrayList<>(vertices), edges, summary);
     }
     
@@ -604,5 +644,160 @@ public class GraphResultFormatter {
         result.put("summary", data != null ? data.summary : "未找到任何相似关系");
         
         return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(result);
+    }
+
+    /**
+     * 构建简单的路径结果格式
+     */
+    private static String buildSimplePathResult(JsonNode root) throws IOException {
+        ObjectNode result = mapper.createObjectNode();
+        
+        System.out.println("=== DEBUG: buildSimplePathResult input ===");
+        System.out.println("Root type: " + root.getNodeType());
+        System.out.println("Root content: " + root.toString());
+        System.out.println("Root isArray: " + root.isArray());
+        System.out.println("Root size: " + (root.isArray() ? root.size() : "N/A"));
+        
+        // 尝试解析不同格式的数据
+        ArrayNode objectsArray = mapper.createArrayNode();
+        int pathLength = 0;
+        
+        if (root.isArray() && root.size() > 0) {
+            System.out.println("Processing array with " + root.size() + " elements");
+            JsonNode firstResult = root.get(0);
+            System.out.println("First result: " + firstResult.toString());
+            
+            // 情况1: 标准的 {path: [...], length: X} 格式
+            if (firstResult.has("path") && firstResult.has("length")) {
+                System.out.println("Case 1: Standard format with path and length");
+                pathLength = firstResult.get("length").asInt();
+                JsonNode pathData = firstResult.get("path");
+                System.out.println("Path data: " + pathData.toString());
+                System.out.println("Path data type: " + pathData.getNodeType());
+                System.out.println("Path data isArray: " + pathData.isArray());
+                
+                if (pathData.isArray()) {
+                    System.out.println("Processing path as array, size: " + pathData.size());
+                    for (int i = 0; i < pathData.size(); i++) {
+                        JsonNode nameNode = pathData.get(i);
+                        System.out.println("  Item " + i + ": " + nameNode.toString() + " (type: " + nameNode.getNodeType() + ")");
+                        if (nameNode.isTextual()) {
+                            String name = nameNode.asText();
+                            objectsArray.add(name);
+                            System.out.println("    Added name: " + name);
+                        } else {
+                            System.out.println("    Skipped non-textual node");
+                        }
+                    }
+                } else {
+                    System.out.println("Path data is not an array, trying to extract differently");
+                    // 检查是否是Gremlin path对象格式: {labels: [...], objects: [...]}
+                    if (pathData.has("objects")) {
+                        JsonNode objectsNode = pathData.get("objects");
+                        System.out.println("Found objects node: " + objectsNode.toString());
+                        if (objectsNode.isArray()) {
+                            System.out.println("Processing objects array, size: " + objectsNode.size());
+                            for (int i = 0; i < objectsNode.size(); i++) {
+                                JsonNode nameNode = objectsNode.get(i);
+                                System.out.println("  Object " + i + ": " + nameNode.toString());
+                                if (nameNode.isTextual()) {
+                                    String name = nameNode.asText();
+                                    objectsArray.add(name);
+                                    System.out.println("    Added name from objects: " + name);
+                                }
+                            }
+                        }
+                    } else if (pathData.isTextual()) {
+                        objectsArray.add(pathData.asText());
+                        System.out.println("Added single path text: " + pathData.asText());
+                    }
+                }
+            }
+            // 情况2: 直接是路径数组
+            else if (firstResult.isArray()) {
+                System.out.println("Case 2: Direct array format");
+                for (JsonNode nameNode : firstResult) {
+                    if (nameNode.isTextual()) {
+                        String name = nameNode.asText();
+                        objectsArray.add(name);
+                        System.out.println("Added name: " + name);
+                    }
+                }
+                pathLength = Math.max(0, objectsArray.size() - 1);
+            }
+            // 情况3: 包含objects的复杂格式
+            else if (firstResult.has("objects")) {
+                System.out.println("Case 3: Complex format with objects");
+                JsonNode objects = firstResult.get("objects");
+                System.out.println("Objects: " + objects.toString());
+                if (objects.isArray()) {
+                    for (JsonNode obj : objects) {
+                        String name = extractNameFromObject(obj);
+                        if (name != null && !name.trim().isEmpty()) {
+                            objectsArray.add(name);
+                            System.out.println("Added name from object: " + name);
+                        }
+                    }
+                    pathLength = Math.max(0, objectsArray.size() - 1);
+                }
+            } else {
+                System.out.println("Case 4: Unknown format");
+                System.out.println("First result keys: " + firstResult.fieldNames());
+            }
+        }
+        // 如果root本身就是数组格式
+        else if (root.isArray()) {
+            System.out.println("Root is direct array");
+            for (JsonNode nameNode : root) {
+                if (nameNode.isTextual()) {
+                    String name = nameNode.asText();
+                    objectsArray.add(name);
+                    System.out.println("Added name: " + name);
+                }
+            }
+            pathLength = Math.max(0, objectsArray.size() - 1);
+        } else {
+            System.out.println("Root is not an array, type: " + root.getNodeType());
+        }
+        
+        // 构建最终结果
+        ObjectNode pathObject = mapper.createObjectNode();
+        pathObject.set("objects", objectsArray);
+        result.set("path", pathObject);
+        result.put("length", pathLength);
+        
+        System.out.println("=== DEBUG: Final result ===");
+        System.out.println("Objects count: " + objectsArray.size());
+        System.out.println("Path length: " + pathLength);
+        System.out.println("Result: " + result.toString());
+        
+        return mapper.writeValueAsString(result);
+    }
+    
+    /**
+     * 从对象中提取名字
+     */
+    private static String extractNameFromObject(JsonNode obj) {
+        if (obj == null) return null;
+        
+        // 如果直接是字符串
+        if (obj.isTextual()) {
+            return obj.asText();
+        }
+        
+        // 尝试从不同字段提取名字
+        String[] nameFields = {"name", "title", "celebrity_name", "vertex_name"};
+        for (String field : nameFields) {
+            if (obj.has(field)) {
+                JsonNode nameNode = obj.get(field);
+                if (nameNode.isArray() && nameNode.size() > 0) {
+                    return nameNode.get(0).asText();
+                } else if (nameNode.isTextual()) {
+                    return nameNode.asText();
+                }
+            }
+        }
+        
+        return null;
     }
 } 

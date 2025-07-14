@@ -27,14 +27,15 @@ public class GraphConstants {
                         ".simplePath()" +  // 避免环路
                         ".where(without('visited'))" +
                         ".aggregate('visited'))" +
-                        ".until(hasLabel('%s').where(values('name').is(within([${targetName}])))" +
-                        ".or()" +
-                        ".loops().is(%d))" +
+                        ".until(hasLabel('%s').where(values('name').is(within([${targetName}]))).or().loops().is(%d))" +
                         ".hasLabel('%s').where(values('name').is(within([${targetName}])))" +  // 确保最后一个节点是目标
                         ".path()" +
-                        ".by(valueMap('celebrity_id', 'name', 'profession'))" +  // 返回节点的基本信息
-                        ".by(valueMap('weight', 'e_type'))" +  // 返回边的信息
-                        ".limit(5)";  // 限制返回的路径数量
+                        ".by(values('name'))" +  // 只返回名字，简洁输出
+                        ".order().by(count(local))" +  // 按路径长度排序
+                        ".limit(1)" +  // 只返回最短的路径
+                        ".project('path', 'length')" +  // 返回路径和长度
+                        ".by(identity())" +  // 保持路径原样
+                        ".by(count(local).math('_ - 1'))";  // 计算中间经过的人数（路径长度减1）
 
         public static final String MUTUAL_FRIEND_QUERY = "g.V().hasLabel('%s').where(values('name').is(within([${name0}])))" +
                         ".both('%s').as('friends')" +

@@ -35,10 +35,8 @@ public class GraphMcpHandler {
         String targetName = (String) params.get("targetName");
 
         return ResponseEntity.ok()
-                .header("X-Streamable-Status", "STARTED")
                 .body(Flux.create(sink -> {
                     try {
-                        sink.next(StreamableResponse.started("开始查询关系链"));
                         String result = graphService.relationChain(sourceName, targetName);
                         sink.next(StreamableResponse.completed(result));
                         sink.complete();

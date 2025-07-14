@@ -261,15 +261,7 @@ public class QueryResultHandler {
         return result;
     }
 
-    /**
-     * 截断返回结果，最大保留8000字符
-     */
-    public static String truncateResult(String result) {
-        if (result != null && result.length() > 8000) {
-            return result.substring(0, 8000);
-        }
-        return result;
-    }
+
 
     public static Map<String, Object> processCommonAncestorResult(List<Map<String, Object>> results) {
         if (results == null || results.isEmpty()) {

@@ -34,12 +34,18 @@ public class GraphServiceOptimized {
         log.debug("Finding relation chain between {} and {}", sourceName, targetName);
 
         Map<String, Object> params = new HashMap<>();
-        params.put("sourceName", sourceName);
-        params.put("targetName", targetName);
+        params.put("sourceName", "'" + sourceName + "'");
+        params.put("targetName", "'" + targetName + "'");
         String gremlinQuery = buildRelationChainQuery();
         
+        log.debug("Generated Gremlin query: {}", gremlinQuery);
+        log.debug("Query parameters: {}", params);
+        
         ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
-        return QueryResultHandler.truncateResult(GraphResultFormatter.formatRelationChain(response));
+        
+        log.debug("Raw Gremlin response: {}", response.getBody());
+        
+        return GraphResultFormatter.formatRelationChain(response);
     }
 
     @Tool(name = "mutual_friend_between_stars", description = "查询两个明星之间的共同好友，返回他们共同的好友列表, 参数格式：names: [人名1, 人名2]")
@@ -53,7 +59,7 @@ public class GraphServiceOptimized {
 
         String gremlinQuery = buildMutualFriendQuery();
         ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
-        return QueryResultHandler.truncateResult(GraphResultFormatter.formatMutualFriends(response));
+        return GraphResultFormatter.formatMutualFriends(response);
     }
 
     @Tool(name = "dream_team_common_works", description = "查询多个明星共同参演的电影，返回他们一起合作的作品列表，参数格式：1.names: [人名1, 人名2],2.relationshipType: 合作")
@@ -72,7 +78,7 @@ public class GraphServiceOptimized {
         // 调试原始响应数据
         log.debug("Dream team raw response: {}", response.getBody());
         
-        return QueryResultHandler.truncateResult(GraphResultFormatter.formatCommonWorks(response));
+        return GraphResultFormatter.formatCommonWorks(response);
     }
 
     @Tool(name = "similarity_between_stars", description = "查询多个明星之间的相似度，基于指定的关系类型，返回他们之间的相似关系,参数格式：1.names: [周星驰, 吴孟达], 2.relationshipType: 合作")
@@ -140,7 +146,7 @@ public class GraphServiceOptimized {
             String result = QueryResultHandler.processGraphQueryResult(response);
 
             if (isValidResult(result)) {
-                return QueryResultHandler.truncateResult(result);
+                return result;
             }
 
             // 如果名字查询失败，尝试获取ID后用ID查询
@@ -172,7 +178,7 @@ public class GraphServiceOptimized {
         ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
         String result = QueryResultHandler.processGraphQueryResult(response);
 
-        return isValidResult(result) ? QueryResultHandler.truncateResult(result)
+        return isValidResult(result) ? result
                 : buildNoAncestorFoundResponse(Arrays.asList(person1Id, person2Id), DEFAULT_ANCESTOR_DEPTH);
     }
 
@@ -637,7 +643,7 @@ public class GraphServiceOptimized {
 
         try {
             ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
-            return QueryResultHandler.truncateResult(GraphResultFormatter.formatCommonAncestor(response));
+            return GraphResultFormatter.formatCommonAncestor(response);
         } catch (Exception e) {
             log.error("Error finding common ancestors for {}: {}", names, e.getMessage());
             return buildNoAncestorFoundResponse(names, depth);
