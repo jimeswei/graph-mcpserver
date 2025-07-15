@@ -24,12 +24,12 @@ public class GraphServiceOptimized {
 
     @Autowired
     private GremlinQueryUtil gremlinQueryUtil;
-    
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Tool(name = "relation_chain_between_stars", description = "查询两个明星之间的好友关系链，返回从源明星到目标明星的路径，最多支持4层关系, 参数格式：1.sourceName: 人名1，2.targetName: 人名2")
     public String relationChain(@ToolParam(description = "人名1") String sourceName,
-                              @ToolParam(description = "人名2") String targetName) throws IOException {
+                                @ToolParam(description = "人名2") String targetName) throws IOException {
         validateNames(sourceName, targetName);
         log.debug("Finding relation chain between {} and {}", sourceName, targetName);
 
@@ -37,14 +37,14 @@ public class GraphServiceOptimized {
         params.put("sourceName", "'" + sourceName + "'");
         params.put("targetName", "'" + targetName + "'");
         String gremlinQuery = buildRelationChainQuery();
-        
+
         log.debug("Generated Gremlin query: {}", gremlinQuery);
         log.debug("Query parameters: {}", params);
-        
+
         ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
-        
+
         log.debug("Raw Gremlin response: {}", response.getBody());
-        
+
         return GraphResultFormatter.formatRelationChain(response);
     }
 
@@ -69,28 +69,28 @@ public class GraphServiceOptimized {
 
         Map<String, Object> params = buildDreamTeamParams(names);
         String gremlinQuery = buildDreamTeamQuery(names);
-        
+
         log.debug("Generated dream team query: {}", gremlinQuery);
         log.debug("Query parameters: {}", params);
-        
+
         ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
-        
+
         // 调试原始响应数据
         log.debug("Dream team raw response: {}", response.getBody());
-        
+
         return GraphResultFormatter.formatCommonWorks(response);
     }
 
     @Tool(name = "similarity_between_stars", description = "查询多个明星之间的相似度，基于指定的关系类型，返回他们之间的相似关系,参数格式：1.names: [周星驰, 吴孟达], 2.relationshipType: 合作")
-    public String similarity(@ToolParam(description = "多个人名，逗号分开，用方括号括起来") List<String> names, 
-                           @ToolParam(description = "边类型，如：合作，好友，搭档等") String relationshipType) throws IOException {
+    public String similarity(@ToolParam(description = "多个人名，逗号分开，用方括号括起来") List<String> names,
+                             @ToolParam(description = "边类型，如：合作，好友，搭档等") String relationshipType) throws IOException {
         validateMinimumNames(names, 2);
-        
+
         // 修复null参数问题
         if (relationshipType == null || relationshipType.trim().isEmpty()) {
             relationshipType = "合作"; // 默认关系类型
         }
-        
+
         log.debug("Finding similarity for {} with relationship type {}", names, relationshipType);
 
         Map<String, Object> params = new HashMap<>();
@@ -101,17 +101,17 @@ public class GraphServiceOptimized {
         String gremlinQuery = buildSimilarityQuery();
         log.debug("Generated similarity query: {}", gremlinQuery);
         log.debug("Query parameters: {}", params);
-        
+
         ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
         log.debug("Raw similarity response: {}", response.getBody());
-        
+
         // 直接返回图数据库的原始查询结果，不进行格式化处理
         return response.getBody();
     }
 
     @Tool(name = "most_recent_common_ancestor", description = "查询多个明星之间最近共同祖先,参数格式：1.names: [周星驰, 吴孟达], 2.maxDepth: 3 (可选,默认3层)")
     public String commonAncestor(@ToolParam(description = "多个人名，逗号分开，用方括号括起来") List<String> names,
-            @ToolParam(description = "最大深度") Integer maxDepth) throws IOException {
+                                 @ToolParam(description = "最大深度") Integer maxDepth) throws IOException {
         validateMinimumNames(names, 2);
 
         // 如果只有两个人，使用优化的两人查询
@@ -205,7 +205,7 @@ public class GraphServiceOptimized {
         if (result == null || result.trim().isEmpty()) {
             return null;
         }
-        
+
         try {
             // 移除多余的空格和换行符
             result = result.trim();
@@ -229,68 +229,68 @@ public class GraphServiceOptimized {
      * 构建无祖先结果响应
      */
     private String buildNoAncestorFoundResponse(List<String> names, int depth) {
-            return String.format("""
-                    {
-                      "message": "未找到共同祖先",
-                      "query": %s,
-                      "searchDepth": %d,
-                      "suggestions": [
-                        "在%d层内无共同祖先",
-                        "数据中可能无祖先关系",
-                        "尝试增加搜索深度"
-                      ]
-                    }""", names.toString(), depth, depth);
+        return String.format("""
+                {
+                  "message": "未找到共同祖先",
+                  "query": %s,
+                  "searchDepth": %d,
+                  "suggestions": [
+                    "在%d层内无共同祖先",
+                    "数据中可能无祖先关系",
+                    "尝试增加搜索深度"
+                  ]
+                }""", names.toString(), depth, depth);
     }
 
     /**
      * 构建共同祖先查询语句 - 优化版
      */
     private String buildCommonAncestorQuery(List<String> names, int depth) {
-            if (names.size() == 2) {
-                    // 两人共同祖先的高效查询
-                    return String.format(COMMON_ANCESTOR_TWO_PERSON_QUERY,
-                                    CELEBRITY_LABEL, CELEBRITY_RELATIONSHIP, depth,
-                                    CELEBRITY_LABEL, CELEBRITY_RELATIONSHIP, depth);
-            } else {
-                    // 多人共同祖先查询 - 使用更高效的交集算法
-                    StringBuilder query = new StringBuilder();
+        if (names.size() == 2) {
+            // 两人共同祖先的高效查询
+            return String.format(COMMON_ANCESTOR_TWO_PERSON_QUERY,
+                    CELEBRITY_LABEL, CELEBRITY_RELATIONSHIP, depth,
+                    CELEBRITY_LABEL, CELEBRITY_RELATIONSHIP, depth);
+        } else {
+            // 多人共同祖先查询 - 使用更高效的交集算法
+            StringBuilder query = new StringBuilder();
 
-                    // 收集所有人的祖先ID
-                    for (int i = 0; i < names.size(); i++) {
-                            if (i > 0)
-                                    query.append(".");
-                            query.append(String.format(COMMON_ANCESTOR_MULTI_PERSON_QUERY_PREFIX,
-                                            CELEBRITY_LABEL, i, CELEBRITY_RELATIONSHIP, depth, i));
-                    }
-
-                    // 查找交集 - 从第一个集合开始，逐个过滤
-                    StringBuilder filterConditions = new StringBuilder();
-                    for (int i = 1; i < names.size(); i++) {
-                            filterConditions.append(".where(__.id().is(within('ancestors").append(i).append("')))");
-                    }
-                    query.append(String.format(COMMON_ANCESTOR_MULTI_PERSON_QUERY_SUFFIX,
-                                    filterConditions.toString()));
-
-                    return query.toString();
+            // 收集所有人的祖先ID
+            for (int i = 0; i < names.size(); i++) {
+                if (i > 0)
+                    query.append(".");
+                query.append(String.format(COMMON_ANCESTOR_MULTI_PERSON_QUERY_PREFIX,
+                        CELEBRITY_LABEL, i, CELEBRITY_RELATIONSHIP, depth, i));
             }
+
+            // 查找交集 - 从第一个集合开始，逐个过滤
+            StringBuilder filterConditions = new StringBuilder();
+            for (int i = 1; i < names.size(); i++) {
+                filterConditions.append(".where(__.id().is(within('ancestors").append(i).append("')))");
+            }
+            query.append(String.format(COMMON_ANCESTOR_MULTI_PERSON_QUERY_SUFFIX,
+                    filterConditions.toString()));
+
+            return query.toString();
+        }
     }
 
     /**
      * 构建查询参数
      */
     private Map<String, Object> buildQueryParams(List<String> names) {
-            Map<String, Object> params = new HashMap<>();
-            if (names.size() == 2) {
-                    // 两人查询使用 person1, person2
-                    params.put("person1", names.get(0));
-                    params.put("person2", names.get(1));
-            } else {
-                    // 多人查询使用 person0, person1, person2...
-                    for (int i = 0; i < names.size(); i++) {
-                            params.put("person" + i, names.get(i));
-                    }
+        Map<String, Object> params = new HashMap<>();
+        if (names.size() == 2) {
+            // 两人查询使用 person1, person2
+            params.put("person1", names.get(0));
+            params.put("person2", names.get(1));
+        } else {
+            // 多人查询使用 person0, person1, person2...
+            for (int i = 0; i < names.size(); i++) {
+                params.put("person" + i, names.get(i));
             }
-            return params;
+        }
+        return params;
     }
 
     // 新添加的方法 - 返回Mono格式用于REST API
@@ -313,10 +313,10 @@ public class GraphServiceOptimized {
         // 首先调试查看两个人的关系类型
         debugPersonRelationships(person1);
         debugPersonRelationships(person2);
-        
+
         String query;
         String ancestorField;
-        
+
         if ("grandparent".equals(level)) {
             // 先尝试家庭关系过滤的查询
             query = String.format(GraphConstants.FAMILY_COMMON_ANCESTOR_GRANDPARENT_QUERY,
@@ -335,48 +335,48 @@ public class GraphServiceOptimized {
                     GraphConstants.CELEBRITY_RELATIONSHIP);
             ancestorField = "parent1";
         }
-        
+
         query = query.replace("${person1}", person1).replace("${person2}", person2);
-        
+
         log.info("Executing family-filtered {} level query: {}", level, query);
 
         try {
             ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(query, Collections.emptyMap());
             String responseBody = response.getBody();
-            
+
             log.info("Raw response for family-filtered {} level query: {}", level, responseBody);
-            
+
             // 检查响应是否为空
             if (responseBody == null || responseBody.trim().isEmpty()) {
                 log.warn("Empty response for family-filtered {} level ancestor query, falling back to original query", level);
                 return executeOriginalQuery(person1, person2, level);
             }
-            
+
             String jsonResult = JsonExtractor.parseResponse(responseBody);
             log.info("Parsed JSON result for family-filtered {} level: {}", level, jsonResult);
-            
+
             // 检查解析结果是否为空
             if (jsonResult == null || jsonResult.trim().isEmpty() || "[]".equals(jsonResult.trim())) {
                 log.info("No family-filtered {} level common ancestors found, falling back to original query", level);
                 return executeOriginalQuery(person1, person2, level);
             }
-            
+
             List<Map<String, Object>> results = objectMapper.readValue(jsonResult, List.class);
-       
+
             return Mono.just(processLevelAncestorResult(results, person1, person2, ancestorField, level));
         } catch (Exception e) {
             log.error("Error executing family-filtered {} level ancestor query: {}, falling back to original query", level, e.getMessage());
             return executeOriginalQuery(person1, person2, level);
         }
     }
-    
+
     /**
      * 执行原始的查询（不过滤关系类型）作为后备方案
      */
     private Mono<Map<String, Object>> executeOriginalQuery(String person1, String person2, String level) {
         String query;
         String ancestorField;
-        
+
         if ("grandparent".equals(level)) {
             query = String.format(GraphConstants.COMMON_ANCESTOR_TWO_PERSON_QUERY,
                     GraphConstants.CELEBRITY_LABEL,
@@ -394,32 +394,32 @@ public class GraphServiceOptimized {
                     GraphConstants.CELEBRITY_RELATIONSHIP);
             ancestorField = "parent1";
         }
-        
+
         query = query.replace("${person1}", person1).replace("${person2}", person2);
-        
+
         log.info("Executing original {} level query: {}", level, query);
 
         try {
             ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(query, Collections.emptyMap());
             String responseBody = response.getBody();
-            
+
             log.info("Raw response for original {} level query: {}", level, responseBody);
-            
+
             if (responseBody == null || responseBody.trim().isEmpty()) {
                 log.warn("Empty response for original {} level ancestor query", level);
                 return Mono.just(createEmptyAncestorResult(person1, person2, "查询返回空结果"));
             }
-            
+
             String jsonResult = JsonExtractor.parseResponse(responseBody);
             log.info("Parsed JSON result for original {} level: {}", level, jsonResult);
-            
+
             if (jsonResult == null || jsonResult.trim().isEmpty() || "[]".equals(jsonResult.trim())) {
                 log.info("No {} level common ancestors found for {} and {}", level, person1, person2);
                 return Mono.just(createEmptyAncestorResult(person1, person2, "未找到" + level + "级别共同祖先"));
             }
-            
+
             List<Map<String, Object>> results = objectMapper.readValue(jsonResult, List.class);
-       
+
             return Mono.just(processLevelAncestorResult(results, person1, person2, ancestorField, level));
         } catch (Exception e) {
             log.error("Error executing original {} level ancestor query: {}", level, e.getMessage());
@@ -436,17 +436,17 @@ public class GraphServiceOptimized {
                     GraphConstants.CELEBRITY_LABEL,
                     GraphConstants.CELEBRITY_RELATIONSHIP,
                     GraphConstants.CELEBRITY_LABEL);
-            
+
             query = query.replace("${person}", person);
-            
+
             ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(query, Collections.emptyMap());
             String responseBody = response.getBody();
             String jsonResult = JsonExtractor.parseResponse(responseBody);
-            
+
             log.info("=== {} 的所有关系类型 ===", person);
             log.info("Raw response: {}", responseBody);
             log.info("Parsed JSON: {}", jsonResult);
-            
+
         } catch (Exception e) {
             log.error("Error debugging relationships for {}: {}", person, e.getMessage());
         }
@@ -466,18 +466,18 @@ public class GraphServiceOptimized {
         // 1. 首先寻找姓氏匹配的祖先（真正的家庭成员）
         // 2. 然后选择profession为空的（可能是家庭成员）
         // 3. 最后选择第一个结果
-        
+
         Map<String, Object> selectedAncestor = null;
         String person1Surname = extractSurname(person1);
         String person2Surname = extractSurname(person2);
-        
+
         // 策略1：寻找姓氏匹配的祖先
         for (Map<String, Object> result : results) {
             Map<String, Object> ancestor = (Map<String, Object>) result.get(ancestorField);
             if (ancestor != null && ancestor.get("name") != null) {
                 String ancestorName = ancestor.get("name").toString();
                 String ancestorSurname = extractSurname(ancestorName);
-                
+
                 // 如果祖先的姓氏与两个人中任一人匹配，优先选择
                 if (person1Surname.equals(ancestorSurname) || person2Surname.equals(ancestorSurname)) {
                     log.info("Found surname-matching ancestor: {} (matches {} or {})", ancestorName, person1Surname, person2Surname);
@@ -486,7 +486,7 @@ public class GraphServiceOptimized {
                 }
             }
         }
-        
+
         // 策略2：如果没找到姓氏匹配的，选择profession为空的
         if (selectedAncestor == null) {
             for (Map<String, Object> result : results) {
@@ -498,7 +498,7 @@ public class GraphServiceOptimized {
                 }
             }
         }
-        
+
         // 策略3：使用第一个结果作为后备
         if (selectedAncestor == null) {
             selectedAncestor = results.get(0);
@@ -512,14 +512,14 @@ public class GraphServiceOptimized {
         finalResult.put("found", true);
         finalResult.put("level", level);
         finalResult.put("message", "找到" + level + "级别共同祖先");
-        
+
         Map<String, Object> commonAncestor = (Map<String, Object>) selectedAncestor.get(ancestorField);
         finalResult.put("common_ancestor", commonAncestor);
 
         log.info("Final selected ancestor result: {}", finalResult);
         return finalResult;
     }
-    
+
     /**
      * 提取姓氏（中文名字的第一个字符）
      */
@@ -542,19 +542,19 @@ public class GraphServiceOptimized {
         result.put("message", message);
         return result;
     }
-    
+
     // ====== 新增的优化辅助方法 ======
-    
+
     /**
      * 验证两个名字参数
      */
     private void validateNames(String sourceName, String targetName) {
-        if (sourceName == null || targetName == null || 
-            sourceName.trim().isEmpty() || targetName.trim().isEmpty()) {
+        if (sourceName == null || targetName == null ||
+                sourceName.trim().isEmpty() || targetName.trim().isEmpty()) {
             throw new IllegalArgumentException("源名字和目标名字都不能为空");
         }
     }
-    
+
     /**
      * 验证名字列表的最小数量
      */
@@ -562,7 +562,7 @@ public class GraphServiceOptimized {
         if (names == null || names.isEmpty()) {
             throw new IllegalArgumentException("名字列表不能为空");
         }
-        
+
         // 检查每个名字是否有效
         for (int i = 0; i < names.size(); i++) {
             String name = names.get(i);
@@ -570,38 +570,38 @@ public class GraphServiceOptimized {
                 throw new IllegalArgumentException(String.format("第%d个名字不能为空", i + 1));
             }
         }
-        
+
         if (names.size() < minCount) {
             throw new IllegalArgumentException(String.format("需要至少 %d 个人名", minCount));
         }
     }
-    
+
     /**
      * 构建关系链查询语句
      */
     private String buildRelationChainQuery() {
         return String.format(RELATION_CHAIN_QUERY,
-            CELEBRITY_LABEL, CELEBRITY_RELATIONSHIP, CELEBRITY_LABEL,
-            MAX_RELATION_CHAIN_DEPTH, CELEBRITY_LABEL);
+                CELEBRITY_LABEL, CELEBRITY_RELATIONSHIP, CELEBRITY_LABEL,
+                MAX_RELATION_CHAIN_DEPTH, CELEBRITY_LABEL);
     }
-    
+
     /**
      * 构建共同好友查询语句
      */
     private String buildMutualFriendQuery() {
         return String.format(MUTUAL_FRIEND_QUERY,
-            CELEBRITY_LABEL, CELEBRITY_RELATIONSHIP, CELEBRITY_RELATIONSHIP,
-            CELEBRITY_LABEL, CELEBRITY_RELATIONSHIP, CELEBRITY_LABEL,
-            CELEBRITY_RELATIONSHIP, CELEBRITY_LABEL);
+                CELEBRITY_LABEL, CELEBRITY_RELATIONSHIP, CELEBRITY_RELATIONSHIP,
+                CELEBRITY_LABEL, CELEBRITY_RELATIONSHIP, CELEBRITY_LABEL,
+                CELEBRITY_RELATIONSHIP, CELEBRITY_LABEL);
     }
-    
+
     /**
      * 构建共同作品查询语句
      */
     private String buildDreamTeamQuery(List<String> names) {
         return DREAM_TEAM_QUERY;
     }
-    
+
     /**
      * 构建共同作品查询参数
      */
@@ -611,29 +611,29 @@ public class GraphServiceOptimized {
         }
 
         Map<String, Object> params = new HashMap<>();
-        
+
         // 设置第一个明星名字
         params.put("names[0]", names.get(0));
-        
+
         // 构建其他明星的名字列表
         List<String> otherNames = names.subList(1, names.size());
         String otherNamesStr = otherNames.stream()
                 .map(name -> "'" + name + "'")  // 添加单引号
                 .collect(Collectors.joining(","));
-        
+
         params.put("other_names", otherNamesStr);
         params.put("other_names_count", String.valueOf(otherNames.size()));
-        
+
         return params;
     }
-    
+
     /**
      * 构建相似度查询语句
      */
     private String buildSimilarityQuery() {
         return SIMILARITY_QUERY;
     }
-    
+
     /**
      * 执行共同祖先查询
      */
