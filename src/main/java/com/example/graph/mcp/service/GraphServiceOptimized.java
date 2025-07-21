@@ -67,16 +67,32 @@ public class GraphServiceOptimized {
         validateMinimumNames(names, 2);
         log.debug("Finding common works for {}", names);
 
+        // 首先验证明星是否存在
+        for (String name : names) {
+            String checkQuery = "g.V().hasLabel('celebrity').where(values('name').is('" + name + "')).count()";
+            ResponseEntity<String> checkResponse = gremlinQueryUtil.executeGremlinRequest(checkQuery, new HashMap<>());
+            log.info("明星 {} 存在性检查结果: {}", name, checkResponse.getBody());
+        }
+        
+        // 验证图数据库结构
+        String schemaQuery = "g.V().hasLabel('celebrity').limit(1).outE().label().dedup()";
+        ResponseEntity<String> schemaResponse = gremlinQueryUtil.executeGremlinRequest(schemaQuery, new HashMap<>());
+        log.info("Celebrity出边类型: {}", schemaResponse.getBody());
+        
+        String workQuery = "g.V().hasLabel('work').limit(1).inE().label().dedup()";
+        ResponseEntity<String> workResponse = gremlinQueryUtil.executeGremlinRequest(workQuery, new HashMap<>());
+        log.info("Work入边类型: {}", workResponse.getBody());
+
         Map<String, Object> params = buildDreamTeamParams(names);
         String gremlinQuery = buildDreamTeamQuery(names);
 
-        log.debug("Generated dream team query: {}", gremlinQuery);
-        log.debug("Query parameters: {}", params);
+        log.info("Generated dream team query: {}", gremlinQuery);
+        log.info("Query parameters: {}", params);
 
         ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
 
         // 调试原始响应数据
-        log.debug("Dream team raw response: {}", response.getBody());
+        log.info("Dream team raw response: {}", response.getBody());
 
         return GraphResultFormatter.formatCommonWorks(response);
     }
@@ -613,13 +629,13 @@ public class GraphServiceOptimized {
         Map<String, Object> params = new HashMap<>();
 
         // 设置第一个明星名字
-        params.put("names[0]", names.get(0));
+        params.put("name1", names.get(0));
 
         // 构建其他明星的名字列表
         List<String> otherNames = names.subList(1, names.size());
-        String otherNamesStr = otherNames.stream()
+        String otherNamesStr = "[" + otherNames.stream()
                 .map(name -> "'" + name + "'")  // 添加单引号
-                .collect(Collectors.joining(","));
+                .collect(Collectors.joining(",")) + "]";
 
         params.put("other_names", otherNamesStr);
         params.put("other_names_count", String.valueOf(otherNames.size()));

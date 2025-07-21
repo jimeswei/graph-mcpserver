@@ -57,9 +57,8 @@ public class GraphMcpHandler {
                 .header("X-Streamable-Status", "STARTED")
                 .body(Flux.create(sink -> {
                     try {
-                        sink.next(StreamableResponse.started("开始查询共同好友"));
                         String result = graphService.mutualFriend(names);
-                        sink.next(StreamableResponse.completed(result));
+                        sink.next(StreamableResponse.completed("mutual_friend_between_stars", result));
                         sink.complete();
                     } catch (IOException e) {
                         log.error("查询共同好友失败", e);

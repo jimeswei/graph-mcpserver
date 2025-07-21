@@ -47,7 +47,26 @@ public class GraphResultFormatter {
         String detailsJson = JsonExtractor.parseResponse(response.getBody());
         JsonNode root = mapper.readTree(detailsJson);
         
-        return buildGraphResult(extractMutualFriendsData(root));
+        ArrayNode resultArray = mapper.createArrayNode();
+        
+        if (root.isArray()) {
+            for (int i = 0; i < root.size(); i++) {
+                JsonNode item = root.get(i);
+                String name = null;
+                
+                if (item.isTextual()) {
+                    name = item.asText();
+                } else if (item.isObject() && item.has("name")) {
+                    name = item.get("name").asText();
+                }
+                
+                if (name != null && !name.trim().isEmpty()) {
+                    resultArray.add(i + ":" + name);
+                }
+            }
+        }
+        
+        return mapper.writeValueAsString(resultArray);
     }
     
     /**
@@ -57,7 +76,8 @@ public class GraphResultFormatter {
         String detailsJson = JsonExtractor.parseResponse(response.getBody());
         JsonNode root = mapper.readTree(detailsJson);
         
-        return buildGraphResult(extractCommonWorksData(root));
+        // 直接返回原始JSON数组格式
+        return detailsJson;
     }
     
     /**
@@ -586,6 +606,7 @@ public class GraphResultFormatter {
         }
         return defaultValue;
     }
+
 
     /**
      * 获取属性的第一个值

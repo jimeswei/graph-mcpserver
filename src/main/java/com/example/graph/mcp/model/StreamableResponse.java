@@ -6,6 +6,7 @@ import lombok.Data;
 @Data
 @Builder
 public class StreamableResponse {
+    private String mcp_tool_function; // MCP工具函数名
     private String status; // 状态：STARTED, IN_PROGRESS, COMPLETED, ERROR
     private int progress; // 进度：0-100
     private String data; // 实际数据
@@ -30,6 +31,15 @@ public class StreamableResponse {
 
     public static StreamableResponse completed(String data) {
         return StreamableResponse.builder()
+                .status("COMPLETED")
+                .progress(100)
+                .data(data)
+                .build();
+    }
+
+    public static StreamableResponse completed(String functionName, String data) {
+        return StreamableResponse.builder()
+                .mcp_tool_function(functionName)
                 .status("COMPLETED")
                 .progress(100)
                 .data(data)

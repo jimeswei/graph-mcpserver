@@ -1,1 +1,328 @@
-
+[INFO] Scanning for projects...
+[WARNING] 
+[WARNING] Some problems were encountered while building the effective model for com.example:graph-mcpserver:jar:0.0.2-SNAPSHOT
+[WARNING] 'dependencies.dependency.scope' for org.junit:junit-bom:pom must be one of [provided, compile, runtime, test, system] but is 'import'. @ line 68, column 20
+[WARNING] 
+[WARNING] It is highly recommended to fix these problems because they threaten the stability of your build.
+[WARNING] 
+[WARNING] For this reason, future Maven versions might no longer support building such malformed projects.
+[WARNING] 
+[INFO] 
+[INFO] --------------------< com.example:graph-mcpserver >---------------------
+[INFO] Building graph-mcpserver 0.0.2-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] >>> spring-boot:3.4.5:run (default-cli) > test-compile @ graph-mcpserver >>>
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ graph-mcpserver ---
+[INFO] Copying 2 resources from src/main/resources to target/classes
+[INFO] Copying 0 resource from src/main/resources to target/classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ graph-mcpserver ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ graph-mcpserver ---
+[INFO] skip non existing resourceDirectory /Users/admin/workspace/graph-mcpserver/src/test/resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ graph-mcpserver ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] <<< spring-boot:3.4.5:run (default-cli) < test-compile @ graph-mcpserver <<<
+[INFO] 
+[INFO] 
+[INFO] --- spring-boot:3.4.5:run (default-cli) @ graph-mcpserver ---
+[INFO] Attaching agents: []
+2025-07-14T14:24:38.590+08:00  INFO 25106 --- [knowledge-graph-algorithrm-service] [           main] com.example.graph.MCPGraphApplication    : Starting MCPGraphApplication using Java 21.0.4 with PID 25106 (/Users/admin/workspace/graph-mcpserver/target/classes started by admin in /Users/admin/workspace/graph-mcpserver)
+2025-07-14T14:24:38.592+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [           main] com.example.graph.MCPGraphApplication    : Running with Spring Boot v3.4.5, Spring v6.2.6
+2025-07-14T14:24:38.592+08:00  INFO 25106 --- [knowledge-graph-algorithrm-service] [           main] com.example.graph.MCPGraphApplication    : The following 1 profile is active: "dev"
+2025-07-14T14:24:39.053+08:00  INFO 25106 --- [knowledge-graph-algorithrm-service] [           main] o.s.a.m.s.a.McpServerAutoConfiguration   : Enable tools capabilities, notification: true
+2025-07-14T14:24:39.053+08:00  INFO 25106 --- [knowledge-graph-algorithrm-service] [           main] o.s.a.m.s.a.McpServerAutoConfiguration   : Registered tools: 5
+2025-07-14T14:24:39.053+08:00  INFO 25106 --- [knowledge-graph-algorithrm-service] [           main] o.s.a.m.s.a.McpServerAutoConfiguration   : Enable resources capabilities, notification: true
+2025-07-14T14:24:39.053+08:00  INFO 25106 --- [knowledge-graph-algorithrm-service] [           main] o.s.a.m.s.a.McpServerAutoConfiguration   : Enable prompts capabilities, notification: true
+2025-07-14T14:24:39.053+08:00  INFO 25106 --- [knowledge-graph-algorithrm-service] [           main] o.s.a.m.s.a.McpServerAutoConfiguration   : Enable completions capabilities
+2025-07-14T14:24:39.105+08:00 ERROR 25106 --- [knowledge-graph-algorithrm-service] [           main] i.n.r.d.DnsServerAddressStreamProviders  : Unable to load io.netty.resolver.dns.macos.MacOSDnsServerAddressStreamProvider, fallback to system defaults. This may result in incorrect DNS resolutions on MacOS. Check whether you have a dependency on 'io.netty:netty-resolver-dns-native-macos'. Use DEBUG level to see the full stack: java.lang.UnsatisfiedLinkError: failed to load the required native library
+2025-07-14T14:24:39.141+08:00  INFO 25106 --- [knowledge-graph-algorithrm-service] [           main] o.s.b.web.embedded.netty.NettyWebServer  : Netty started on port 5821 (http)
+2025-07-14T14:24:39.147+08:00  INFO 25106 --- [knowledge-graph-algorithrm-service] [           main] com.example.graph.MCPGraphApplication    : Started MCPGraphApplication in 0.706 seconds (process running for 0.814)
+2025-07-14T14:24:39.585+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-4] c.e.g.mcp.service.GraphServiceOptimized  : Finding relation chain between 刘德华 and 周杰伦
+2025-07-14T14:24:39.586+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-4] c.e.g.mcp.service.GraphServiceOptimized  : Generated Gremlin query: g.V().hasLabel('celebrity').where(values('name').is(within([${sourceName}]))).repeat(both('celebrity_celebrity').simplePath().where(without('visited')).aggregate('visited')).until(hasLabel('celebrity').where(values('name').is(within([${targetName}]))).or().loops().is(4)).hasLabel('celebrity').where(values('name').is(within([${targetName}]))).path().by(values('name')).order().by(count(local)).limit(1).project('path', 'length').by(identity()).by(count(local).math('_ - 1'))
+2025-07-14T14:24:39.586+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-4] c.e.g.mcp.service.GraphServiceOptimized  : Query parameters: {targetName='周杰伦', sourceName='刘德华'}
+2025-07-14T14:24:39.598+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-4] c.e.graph.mcp.util.GremlinQueryUtil      : gremlin: {"content":"g.V().hasLabel('celebrity').where(values('name').is(within(['刘德华']))).repeat(both('celebrity_celebrity').simplePath().where(without('visited')).aggregate('visited')).until(hasLabel('celebrity').where(values('name').is(within(['周杰伦']))).or().loops().is(4)).hasLabel('celebrity').where(values('name').is(within(['周杰伦']))).path().by(values('name')).order().by(count(local)).limit(1).project('path', 'length').by(identity()).by(count(local).math('_ - 1'))"}
+2025-07-14T14:24:40.095+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-4] c.e.g.mcp.service.GraphServiceOptimized  : Raw Gremlin response: {"status":200,"data":{"type":"GENERAL","json_view":{"data":[{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]},"table_view":{"header":["result"],"rows":[{"result":{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}}]},"graph_view":{"vertices":null,"edges":null}},"message":null,"cause":null}
+=== DEBUG: Raw response body ===
+{"status":200,"data":{"type":"GENERAL","json_view":{"data":[{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]},"table_view":{"header":["result"],"rows":[{"result":{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}}]},"graph_view":{"vertices":null,"edges":null}},"message":null,"cause":null}
+=== DEBUG: Parsed details JSON ===
+[{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]
+=== DEBUG: Root JsonNode ===
+[{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]
+=== DEBUG: buildSimplePathResult input ===
+Root type: ARRAY
+Root content: [{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]
+Root isArray: true
+Root size: 1
+Processing array with 1 elements
+First result: {"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}
+Case 1: Standard format with path and length
+Path data: {"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]}
+Path data type: OBJECT
+Path data isArray: false
+Path data is not an array, trying to extract differently
+Found objects node: ["刘德华","曾志伟","周杰伦"]
+Processing objects array, size: 3
+  Object 0: "刘德华"
+    Added name from objects: 刘德华
+  Object 1: "曾志伟"
+    Added name from objects: 曾志伟
+  Object 2: "周杰伦"
+    Added name from objects: 周杰伦
+=== DEBUG: Final result ===
+Objects count: 3
+Path length: 2
+Result: {"path":{"objects":["刘德华","曾志伟","周杰伦"]},"length":2}
+2025-07-14T14:24:50.692+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-4] c.e.g.mcp.service.GraphServiceOptimized  : Finding relation chain between 刘德华 and 周杰伦
+2025-07-14T14:24:50.692+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-4] c.e.g.mcp.service.GraphServiceOptimized  : Generated Gremlin query: g.V().hasLabel('celebrity').where(values('name').is(within([${sourceName}]))).repeat(both('celebrity_celebrity').simplePath().where(without('visited')).aggregate('visited')).until(hasLabel('celebrity').where(values('name').is(within([${targetName}]))).or().loops().is(4)).hasLabel('celebrity').where(values('name').is(within([${targetName}]))).path().by(values('name')).order().by(count(local)).limit(1).project('path', 'length').by(identity()).by(count(local).math('_ - 1'))
+2025-07-14T14:24:50.692+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-4] c.e.g.mcp.service.GraphServiceOptimized  : Query parameters: {targetName='周杰伦', sourceName='刘德华'}
+2025-07-14T14:24:50.693+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-4] c.e.graph.mcp.util.GremlinQueryUtil      : gremlin: {"content":"g.V().hasLabel('celebrity').where(values('name').is(within(['刘德华']))).repeat(both('celebrity_celebrity').simplePath().where(without('visited')).aggregate('visited')).until(hasLabel('celebrity').where(values('name').is(within(['周杰伦']))).or().loops().is(4)).hasLabel('celebrity').where(values('name').is(within(['周杰伦']))).path().by(values('name')).order().by(count(local)).limit(1).project('path', 'length').by(identity()).by(count(local).math('_ - 1'))"}
+2025-07-14T14:24:51.171+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-4] c.e.g.mcp.service.GraphServiceOptimized  : Raw Gremlin response: {"status":200,"data":{"type":"GENERAL","json_view":{"data":[{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]},"table_view":{"header":["result"],"rows":[{"result":{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}}]},"graph_view":{"vertices":null,"edges":null}},"message":null,"cause":null}
+=== DEBUG: Raw response body ===
+{"status":200,"data":{"type":"GENERAL","json_view":{"data":[{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]},"table_view":{"header":["result"],"rows":[{"result":{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}}]},"graph_view":{"vertices":null,"edges":null}},"message":null,"cause":null}
+=== DEBUG: Parsed details JSON ===
+[{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]
+=== DEBUG: Root JsonNode ===
+[{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]
+=== DEBUG: buildSimplePathResult input ===
+Root type: ARRAY
+Root content: [{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]
+Root isArray: true
+Root size: 1
+Processing array with 1 elements
+First result: {"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}
+Case 1: Standard format with path and length
+Path data: {"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]}
+Path data type: OBJECT
+Path data isArray: false
+Path data is not an array, trying to extract differently
+Found objects node: ["刘德华","曾志伟","周杰伦"]
+Processing objects array, size: 3
+  Object 0: "刘德华"
+    Added name from objects: 刘德华
+  Object 1: "曾志伟"
+    Added name from objects: 曾志伟
+  Object 2: "周杰伦"
+    Added name from objects: 周杰伦
+=== DEBUG: Final result ===
+Objects count: 3
+Path length: 2
+Result: {"path":{"objects":["刘德华","曾志伟","周杰伦"]},"length":2}
+2025-07-14T14:24:52.067+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-4] c.e.g.mcp.service.GraphServiceOptimized  : Finding relation chain between 刘德华 and 周杰伦
+2025-07-14T14:24:52.067+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-4] c.e.g.mcp.service.GraphServiceOptimized  : Generated Gremlin query: g.V().hasLabel('celebrity').where(values('name').is(within([${sourceName}]))).repeat(both('celebrity_celebrity').simplePath().where(without('visited')).aggregate('visited')).until(hasLabel('celebrity').where(values('name').is(within([${targetName}]))).or().loops().is(4)).hasLabel('celebrity').where(values('name').is(within([${targetName}]))).path().by(values('name')).order().by(count(local)).limit(1).project('path', 'length').by(identity()).by(count(local).math('_ - 1'))
+2025-07-14T14:24:52.067+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-4] c.e.g.mcp.service.GraphServiceOptimized  : Query parameters: {targetName='周杰伦', sourceName='刘德华'}
+2025-07-14T14:24:52.067+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-4] c.e.graph.mcp.util.GremlinQueryUtil      : gremlin: {"content":"g.V().hasLabel('celebrity').where(values('name').is(within(['刘德华']))).repeat(both('celebrity_celebrity').simplePath().where(without('visited')).aggregate('visited')).until(hasLabel('celebrity').where(values('name').is(within(['周杰伦']))).or().loops().is(4)).hasLabel('celebrity').where(values('name').is(within(['周杰伦']))).path().by(values('name')).order().by(count(local)).limit(1).project('path', 'length').by(identity()).by(count(local).math('_ - 1'))"}
+2025-07-14T14:24:52.519+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-4] c.e.g.mcp.service.GraphServiceOptimized  : Raw Gremlin response: {"status":200,"data":{"type":"GENERAL","json_view":{"data":[{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]},"table_view":{"header":["result"],"rows":[{"result":{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}}]},"graph_view":{"vertices":null,"edges":null}},"message":null,"cause":null}
+=== DEBUG: Raw response body ===
+{"status":200,"data":{"type":"GENERAL","json_view":{"data":[{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]},"table_view":{"header":["result"],"rows":[{"result":{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}}]},"graph_view":{"vertices":null,"edges":null}},"message":null,"cause":null}
+=== DEBUG: Parsed details JSON ===
+[{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]
+=== DEBUG: Root JsonNode ===
+[{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]
+=== DEBUG: buildSimplePathResult input ===
+Root type: ARRAY
+Root content: [{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]
+Root isArray: true
+Root size: 1
+Processing array with 1 elements
+First result: {"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}
+Case 1: Standard format with path and length
+Path data: {"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]}
+Path data type: OBJECT
+Path data isArray: false
+Path data is not an array, trying to extract differently
+Found objects node: ["刘德华","曾志伟","周杰伦"]
+Processing objects array, size: 3
+  Object 0: "刘德华"
+    Added name from objects: 刘德华
+  Object 1: "曾志伟"
+    Added name from objects: 曾志伟
+  Object 2: "周杰伦"
+    Added name from objects: 周杰伦
+=== DEBUG: Final result ===
+Objects count: 3
+Path length: 2
+Result: {"path":{"objects":["刘德华","曾志伟","周杰伦"]},"length":2}
+2025-07-14T14:24:55.876+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-4] c.e.g.mcp.service.GraphServiceOptimized  : Finding relation chain between 刘德华 and 周杰伦
+2025-07-14T14:24:55.877+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-4] c.e.g.mcp.service.GraphServiceOptimized  : Generated Gremlin query: g.V().hasLabel('celebrity').where(values('name').is(within([${sourceName}]))).repeat(both('celebrity_celebrity').simplePath().where(without('visited')).aggregate('visited')).until(hasLabel('celebrity').where(values('name').is(within([${targetName}]))).or().loops().is(4)).hasLabel('celebrity').where(values('name').is(within([${targetName}]))).path().by(values('name')).order().by(count(local)).limit(1).project('path', 'length').by(identity()).by(count(local).math('_ - 1'))
+2025-07-14T14:24:55.877+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-4] c.e.g.mcp.service.GraphServiceOptimized  : Query parameters: {targetName='周杰伦', sourceName='刘德华'}
+2025-07-14T14:24:55.877+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-4] c.e.graph.mcp.util.GremlinQueryUtil      : gremlin: {"content":"g.V().hasLabel('celebrity').where(values('name').is(within(['刘德华']))).repeat(both('celebrity_celebrity').simplePath().where(without('visited')).aggregate('visited')).until(hasLabel('celebrity').where(values('name').is(within(['周杰伦']))).or().loops().is(4)).hasLabel('celebrity').where(values('name').is(within(['周杰伦']))).path().by(values('name')).order().by(count(local)).limit(1).project('path', 'length').by(identity()).by(count(local).math('_ - 1'))"}
+2025-07-14T14:24:56.317+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-4] c.e.g.mcp.service.GraphServiceOptimized  : Raw Gremlin response: {"status":200,"data":{"type":"GENERAL","json_view":{"data":[{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]},"table_view":{"header":["result"],"rows":[{"result":{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}}]},"graph_view":{"vertices":null,"edges":null}},"message":null,"cause":null}
+=== DEBUG: Raw response body ===
+{"status":200,"data":{"type":"GENERAL","json_view":{"data":[{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]},"table_view":{"header":["result"],"rows":[{"result":{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}}]},"graph_view":{"vertices":null,"edges":null}},"message":null,"cause":null}
+=== DEBUG: Parsed details JSON ===
+[{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]
+=== DEBUG: Root JsonNode ===
+[{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]
+=== DEBUG: buildSimplePathResult input ===
+Root type: ARRAY
+Root content: [{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]
+Root isArray: true
+Root size: 1
+Processing array with 1 elements
+First result: {"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}
+Case 1: Standard format with path and length
+Path data: {"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]}
+Path data type: OBJECT
+Path data isArray: false
+Path data is not an array, trying to extract differently
+Found objects node: ["刘德华","曾志伟","周杰伦"]
+Processing objects array, size: 3
+  Object 0: "刘德华"
+    Added name from objects: 刘德华
+  Object 1: "曾志伟"
+    Added name from objects: 曾志伟
+  Object 2: "周杰伦"
+    Added name from objects: 周杰伦
+=== DEBUG: Final result ===
+Objects count: 3
+Path length: 2
+Result: {"path":{"objects":["刘德华","曾志伟","周杰伦"]},"length":2}
+2025-07-14T14:24:57.686+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-4] c.e.g.mcp.service.GraphServiceOptimized  : Finding relation chain between 刘德华 and 周杰伦
+2025-07-14T14:24:57.686+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-4] c.e.g.mcp.service.GraphServiceOptimized  : Generated Gremlin query: g.V().hasLabel('celebrity').where(values('name').is(within([${sourceName}]))).repeat(both('celebrity_celebrity').simplePath().where(without('visited')).aggregate('visited')).until(hasLabel('celebrity').where(values('name').is(within([${targetName}]))).or().loops().is(4)).hasLabel('celebrity').where(values('name').is(within([${targetName}]))).path().by(values('name')).order().by(count(local)).limit(1).project('path', 'length').by(identity()).by(count(local).math('_ - 1'))
+2025-07-14T14:24:57.686+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-4] c.e.g.mcp.service.GraphServiceOptimized  : Query parameters: {targetName='周杰伦', sourceName='刘德华'}
+2025-07-14T14:24:57.687+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-4] c.e.graph.mcp.util.GremlinQueryUtil      : gremlin: {"content":"g.V().hasLabel('celebrity').where(values('name').is(within(['刘德华']))).repeat(both('celebrity_celebrity').simplePath().where(without('visited')).aggregate('visited')).until(hasLabel('celebrity').where(values('name').is(within(['周杰伦']))).or().loops().is(4)).hasLabel('celebrity').where(values('name').is(within(['周杰伦']))).path().by(values('name')).order().by(count(local)).limit(1).project('path', 'length').by(identity()).by(count(local).math('_ - 1'))"}
+2025-07-14T14:24:58.217+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-4] c.e.g.mcp.service.GraphServiceOptimized  : Raw Gremlin response: {"status":200,"data":{"type":"GENERAL","json_view":{"data":[{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]},"table_view":{"header":["result"],"rows":[{"result":{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}}]},"graph_view":{"vertices":null,"edges":null}},"message":null,"cause":null}
+=== DEBUG: Raw response body ===
+{"status":200,"data":{"type":"GENERAL","json_view":{"data":[{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]},"table_view":{"header":["result"],"rows":[{"result":{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}}]},"graph_view":{"vertices":null,"edges":null}},"message":null,"cause":null}
+=== DEBUG: Parsed details JSON ===
+[{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]
+=== DEBUG: Root JsonNode ===
+[{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]
+=== DEBUG: buildSimplePathResult input ===
+Root type: ARRAY
+Root content: [{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]
+Root isArray: true
+Root size: 1
+Processing array with 1 elements
+First result: {"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}
+Case 1: Standard format with path and length
+Path data: {"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]}
+Path data type: OBJECT
+Path data isArray: false
+Path data is not an array, trying to extract differently
+Found objects node: ["刘德华","曾志伟","周杰伦"]
+Processing objects array, size: 3
+  Object 0: "刘德华"
+    Added name from objects: 刘德华
+  Object 1: "曾志伟"
+    Added name from objects: 曾志伟
+  Object 2: "周杰伦"
+    Added name from objects: 周杰伦
+=== DEBUG: Final result ===
+Objects count: 3
+Path length: 2
+Result: {"path":{"objects":["刘德华","曾志伟","周杰伦"]},"length":2}
+2025-07-14T14:25:00.157+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-4] c.e.g.mcp.service.GraphServiceOptimized  : Finding relation chain between 刘德华 and 周杰伦
+2025-07-14T14:25:00.157+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-4] c.e.g.mcp.service.GraphServiceOptimized  : Generated Gremlin query: g.V().hasLabel('celebrity').where(values('name').is(within([${sourceName}]))).repeat(both('celebrity_celebrity').simplePath().where(without('visited')).aggregate('visited')).until(hasLabel('celebrity').where(values('name').is(within([${targetName}]))).or().loops().is(4)).hasLabel('celebrity').where(values('name').is(within([${targetName}]))).path().by(values('name')).order().by(count(local)).limit(1).project('path', 'length').by(identity()).by(count(local).math('_ - 1'))
+2025-07-14T14:25:00.157+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-4] c.e.g.mcp.service.GraphServiceOptimized  : Query parameters: {targetName='周杰伦', sourceName='刘德华'}
+2025-07-14T14:25:00.157+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-4] c.e.graph.mcp.util.GremlinQueryUtil      : gremlin: {"content":"g.V().hasLabel('celebrity').where(values('name').is(within(['刘德华']))).repeat(both('celebrity_celebrity').simplePath().where(without('visited')).aggregate('visited')).until(hasLabel('celebrity').where(values('name').is(within(['周杰伦']))).or().loops().is(4)).hasLabel('celebrity').where(values('name').is(within(['周杰伦']))).path().by(values('name')).order().by(count(local)).limit(1).project('path', 'length').by(identity()).by(count(local).math('_ - 1'))"}
+2025-07-14T14:25:00.621+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-4] c.e.g.mcp.service.GraphServiceOptimized  : Raw Gremlin response: {"status":200,"data":{"type":"GENERAL","json_view":{"data":[{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]},"table_view":{"header":["result"],"rows":[{"result":{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}}]},"graph_view":{"vertices":null,"edges":null}},"message":null,"cause":null}
+=== DEBUG: Raw response body ===
+{"status":200,"data":{"type":"GENERAL","json_view":{"data":[{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]},"table_view":{"header":["result"],"rows":[{"result":{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}}]},"graph_view":{"vertices":null,"edges":null}},"message":null,"cause":null}
+=== DEBUG: Parsed details JSON ===
+[{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]
+=== DEBUG: Root JsonNode ===
+[{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]
+=== DEBUG: buildSimplePathResult input ===
+Root type: ARRAY
+Root content: [{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]
+Root isArray: true
+Root size: 1
+Processing array with 1 elements
+First result: {"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}
+Case 1: Standard format with path and length
+Path data: {"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]}
+Path data type: OBJECT
+Path data isArray: false
+Path data is not an array, trying to extract differently
+Found objects node: ["刘德华","曾志伟","周杰伦"]
+Processing objects array, size: 3
+  Object 0: "刘德华"
+    Added name from objects: 刘德华
+  Object 1: "曾志伟"
+    Added name from objects: 曾志伟
+  Object 2: "周杰伦"
+    Added name from objects: 周杰伦
+=== DEBUG: Final result ===
+Objects count: 3
+Path length: 2
+Result: {"path":{"objects":["刘德华","曾志伟","周杰伦"]},"length":2}
+2025-07-14T14:26:32.764+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-5] c.e.g.mcp.service.GraphServiceOptimized  : Finding relation chain between 周杰伦 and 刘德华
+2025-07-14T14:26:32.764+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-5] c.e.g.mcp.service.GraphServiceOptimized  : Generated Gremlin query: g.V().hasLabel('celebrity').where(values('name').is(within([${sourceName}]))).repeat(both('celebrity_celebrity').simplePath().where(without('visited')).aggregate('visited')).until(hasLabel('celebrity').where(values('name').is(within([${targetName}]))).or().loops().is(4)).hasLabel('celebrity').where(values('name').is(within([${targetName}]))).path().by(values('name')).order().by(count(local)).limit(1).project('path', 'length').by(identity()).by(count(local).math('_ - 1'))
+2025-07-14T14:26:32.764+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-5] c.e.g.mcp.service.GraphServiceOptimized  : Query parameters: {targetName='刘德华', sourceName='周杰伦'}
+2025-07-14T14:26:32.764+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-5] c.e.graph.mcp.util.GremlinQueryUtil      : gremlin: {"content":"g.V().hasLabel('celebrity').where(values('name').is(within(['周杰伦']))).repeat(both('celebrity_celebrity').simplePath().where(without('visited')).aggregate('visited')).until(hasLabel('celebrity').where(values('name').is(within(['刘德华']))).or().loops().is(4)).hasLabel('celebrity').where(values('name').is(within(['刘德华']))).path().by(values('name')).order().by(count(local)).limit(1).project('path', 'length').by(identity()).by(count(local).math('_ - 1'))"}
+2025-07-14T14:26:32.968+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-5] c.e.g.mcp.service.GraphServiceOptimized  : Raw Gremlin response: {"status":200,"data":{"type":"GENERAL","json_view":{"data":[{"path":{"labels":[[],[],[]],"objects":["周杰伦","曾志伟","刘德华"]},"length":2.0}]},"table_view":{"header":["result"],"rows":[{"result":{"path":{"labels":[[],[],[]],"objects":["周杰伦","曾志伟","刘德华"]},"length":2.0}}]},"graph_view":{"vertices":null,"edges":null}},"message":null,"cause":null}
+=== DEBUG: Raw response body ===
+{"status":200,"data":{"type":"GENERAL","json_view":{"data":[{"path":{"labels":[[],[],[]],"objects":["周杰伦","曾志伟","刘德华"]},"length":2.0}]},"table_view":{"header":["result"],"rows":[{"result":{"path":{"labels":[[],[],[]],"objects":["周杰伦","曾志伟","刘德华"]},"length":2.0}}]},"graph_view":{"vertices":null,"edges":null}},"message":null,"cause":null}
+=== DEBUG: Parsed details JSON ===
+[{"path":{"labels":[[],[],[]],"objects":["周杰伦","曾志伟","刘德华"]},"length":2.0}]
+=== DEBUG: Root JsonNode ===
+[{"path":{"labels":[[],[],[]],"objects":["周杰伦","曾志伟","刘德华"]},"length":2.0}]
+=== DEBUG: buildSimplePathResult input ===
+Root type: ARRAY
+Root content: [{"path":{"labels":[[],[],[]],"objects":["周杰伦","曾志伟","刘德华"]},"length":2.0}]
+Root isArray: true
+Root size: 1
+Processing array with 1 elements
+First result: {"path":{"labels":[[],[],[]],"objects":["周杰伦","曾志伟","刘德华"]},"length":2.0}
+Case 1: Standard format with path and length
+Path data: {"labels":[[],[],[]],"objects":["周杰伦","曾志伟","刘德华"]}
+Path data type: OBJECT
+Path data isArray: false
+Path data is not an array, trying to extract differently
+Found objects node: ["周杰伦","曾志伟","刘德华"]
+Processing objects array, size: 3
+  Object 0: "周杰伦"
+    Added name from objects: 周杰伦
+  Object 1: "曾志伟"
+    Added name from objects: 曾志伟
+  Object 2: "刘德华"
+    Added name from objects: 刘德华
+=== DEBUG: Final result ===
+Objects count: 3
+Path length: 2
+Result: {"path":{"objects":["周杰伦","曾志伟","刘德华"]},"length":2}
+2025-07-14T14:28:49.890+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-7] c.e.g.mcp.service.GraphServiceOptimized  : Finding relation chain between 刘德华 and 周杰伦
+2025-07-14T14:28:49.890+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-7] c.e.g.mcp.service.GraphServiceOptimized  : Generated Gremlin query: g.V().hasLabel('celebrity').where(values('name').is(within([${sourceName}]))).repeat(both('celebrity_celebrity').simplePath().where(without('visited')).aggregate('visited')).until(hasLabel('celebrity').where(values('name').is(within([${targetName}]))).or().loops().is(4)).hasLabel('celebrity').where(values('name').is(within([${targetName}]))).path().by(values('name')).order().by(count(local)).limit(1).project('path', 'length').by(identity()).by(count(local).math('_ - 1'))
+2025-07-14T14:28:49.890+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-7] c.e.g.mcp.service.GraphServiceOptimized  : Query parameters: {targetName='周杰伦', sourceName='刘德华'}
+2025-07-14T14:28:49.890+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-7] c.e.graph.mcp.util.GremlinQueryUtil      : gremlin: {"content":"g.V().hasLabel('celebrity').where(values('name').is(within(['刘德华']))).repeat(both('celebrity_celebrity').simplePath().where(without('visited')).aggregate('visited')).until(hasLabel('celebrity').where(values('name').is(within(['周杰伦']))).or().loops().is(4)).hasLabel('celebrity').where(values('name').is(within(['周杰伦']))).path().by(values('name')).order().by(count(local)).limit(1).project('path', 'length').by(identity()).by(count(local).math('_ - 1'))"}
+2025-07-14T14:28:50.323+08:00 DEBUG 25106 --- [knowledge-graph-algorithrm-service] [ctor-http-nio-7] c.e.g.mcp.service.GraphServiceOptimized  : Raw Gremlin response: {"status":200,"data":{"type":"GENERAL","json_view":{"data":[{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]},"table_view":{"header":["result"],"rows":[{"result":{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}}]},"graph_view":{"vertices":null,"edges":null}},"message":null,"cause":null}
+=== DEBUG: Raw response body ===
+{"status":200,"data":{"type":"GENERAL","json_view":{"data":[{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]},"table_view":{"header":["result"],"rows":[{"result":{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}}]},"graph_view":{"vertices":null,"edges":null}},"message":null,"cause":null}
+=== DEBUG: Parsed details JSON ===
+[{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]
+=== DEBUG: Root JsonNode ===
+[{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]
+=== DEBUG: buildSimplePathResult input ===
+Root type: ARRAY
+Root content: [{"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}]
+Root isArray: true
+Root size: 1
+Processing array with 1 elements
+First result: {"path":{"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]},"length":2.0}
+Case 1: Standard format with path and length
+Path data: {"labels":[[],[],[]],"objects":["刘德华","曾志伟","周杰伦"]}
+Path data type: OBJECT
+Path data isArray: false
+Path data is not an array, trying to extract differently
+Found objects node: ["刘德华","曾志伟","周杰伦"]
+Processing objects array, size: 3
+  Object 0: "刘德华"
+    Added name from objects: 刘德华
+  Object 1: "曾志伟"
+    Added name from objects: 曾志伟
+  Object 2: "周杰伦"
+    Added name from objects: 周杰伦
+=== DEBUG: Final result ===
+Objects count: 3
+Path length: 2
+Result: {"path":{"objects":["刘德华","曾志伟","周杰伦"]},"length":2}
+2025-07-14T14:29:13.880+08:00  INFO 25106 --- [knowledge-graph-algorithrm-service] [ionShutdownHook] o.s.b.w.embedded.netty.GracefulShutdown  : Commencing graceful shutdown. Waiting for active requests to complete
+2025-07-14T14:29:13.881+08:00  INFO 25106 --- [knowledge-graph-algorithrm-service] [ netty-shutdown] o.s.b.w.embedded.netty.GracefulShutdown  : Graceful shutdown complete

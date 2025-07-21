@@ -42,19 +42,14 @@ public class GraphConstants {
                         ".both('%s').hasLabel('%s').where(values('name').is(within([${name1}])))" +
                         ".select('friends')" +
                         ".dedup()" +
-                        ".project('commonFriend', 'relationships')" +
-                        ".by(valueMap('celebrity_id', 'name', 'profession'))" +
-                        ".by(union(__.inE('%s').where(outV().hasLabel('%s').where(values('name').is(within([${name0}]))))," +
-                        "__.inE('%s').where(outV().hasLabel('%s').where(values('name').is(within([${name1}])))))" +
-                        ".valueMap('weight', 'e_type'))";
+                        ".values('name')";
 
         public static final String DREAM_TEAM_QUERY = 
-            "g.V().hasLabel('celebrity').where(values('name').is(within([${names[0]}]))).as('star1')" +  // 从第一个明星开始
-            ".outE('celebrity_work').as('role1')" +  // 获取与作品的关系
-            ".inV().as('work')" +  // 进入作品节点
+            "g.V().hasLabel('celebrity').where(values('name').is('${name1}'))" +  // 从第一个明星开始
+            ".out('celebrity_work').as('work')" +  // 进入作品节点
             ".where(" +
             "__.in('celebrity_work')" +  // 查找所有参与该作品的明星
-            ".where(values('name').is(within([${other_names}])))" +  // 必须包含列表中的所有其他明星
+            ".where(values('name').is(within(${other_names})))" +  // 必须包含列表中的所有其他明星
             ".count().is(${other_names_count})" +  // 确保所有其他明星都参与了
             ")" +
             ".valueMap('title', 'release_date', 'work_type')" +  // 获取作品的核心信息
@@ -135,7 +130,7 @@ public class GraphConstants {
                         ".repeat(__.in('%s').simplePath()).emit().times(%d)" +
                         ".id().fold().as('ancestors%d')";
 
-        public static final String COMMON_ANCESTOR_MULTI_PERSON_QUERY_SUFFIX = ".V().where(__.id().is(within('ancestors0')))%s"
+        public static final String COMMON_ANCESTOR_MULTI_PERSON_QUERY_SUFFIX = "g.V().where(__.id().is(within('ancestors0')))%s"
                         +
                         ".dedup().elementMap()";
 
@@ -145,12 +140,12 @@ public class GraphConstants {
 
         // 家庭关系过滤的共同祖先查询模板 - 只使用e_type属性
         public static final String FAMILY_COMMON_ANCESTOR_GRANDPARENT_QUERY = 
-            "g.V().hasLabel('%s').where(values('name').is(within([${person1}]))).as('p1')" +
+            "g.V().hasLabel('%s').where(values('name').is('${person1}')).as('p1')" +
             ".inE('%s').where(has('e_type', within(['父子', '母子', '父女', '母女', '亲子', '家人', 'family', '儿子', '女儿', '父亲', '母亲', '爸爸', '妈妈'])))" +
             ".outV().as('parent1')" +
             ".inE('%s').where(has('e_type', within(['父子', '母子', '父女', '母女', '亲子', '家人', 'family', '儿子', '女儿', '父亲', '母亲', '爸爸', '妈妈'])))" +
             ".outV().as('grandparent1')" +
-            ".V().hasLabel('%s').where(values('name').is(within([${person2}]))).as('p2')" +
+            ".V().hasLabel('%s').where(values('name').is('${person2}')).as('p2')" +
             ".inE('%s').where(has('e_type', within(['父子', '母子', '父女', '母女', '亲子', '家人', 'family', '儿子', '女儿', '父亲', '母亲', '爸爸', '妈妈'])))" +
             ".outV().as('parent2')" +
             ".inE('%s').where(has('e_type', within(['父子', '母子', '父女', '母女', '亲子', '家人', 'family', '儿子', '女儿', '父亲', '母亲', '爸爸', '妈妈'])))" +
@@ -163,10 +158,10 @@ public class GraphConstants {
             ".dedup()";
 
         public static final String FAMILY_COMMON_ANCESTOR_PARENT_QUERY = 
-            "g.V().hasLabel('%s').where(values('name').is(within([${person1}]))).as('p1')" +
+            "g.V().hasLabel('%s').where(values('name').is('${person1}')).as('p1')" +
             ".inE('%s').where(has('e_type', within(['父子', '母子', '父女', '母女', '亲子', '家人', 'family', '儿子', '女儿', '父亲', '母亲', '爸爸', '妈妈'])))" +
             ".outV().as('parent1')" +
-            ".V().hasLabel('%s').where(values('name').is(within([${person2}]))).as('p2')" +
+            ".V().hasLabel('%s').where(values('name').is('${person2}')).as('p2')" +
             ".inE('%s').where(has('e_type', within(['父子', '母子', '父女', '母女', '亲子', '家人', 'family', '儿子', '女儿', '父亲', '母亲', '爸爸', '妈妈'])))" +
             ".outV().as('parent2')" +
             ".where('parent1', eq('parent2'))" +
@@ -178,10 +173,10 @@ public class GraphConstants {
 
         // 调试查询 - 检查某人的所有关系类型
         public static final String DEBUG_PERSON_RELATIONSHIPS_QUERY = 
-            "g.V().hasLabel('%s').where(values('name').is(within([${person}])))" +
+            "g.V().hasLabel('%s').where(values('name').is('${person}'))" +
             ".bothE('%s')" +
             ".project('direction', 'otherPerson', 'edgeProperties')" +
-            ".by(choose(inV().hasLabel('%s').where(values('name').is(within([${person}]))), constant('incoming'), constant('outgoing')))" +
+            ".by(choose(inV().hasLabel('%s').where(values('name').is('${person}')), constant('incoming'), constant('outgoing')))" +
             ".by(otherV().values('name'))" +
             ".by(valueMap())";
 }
