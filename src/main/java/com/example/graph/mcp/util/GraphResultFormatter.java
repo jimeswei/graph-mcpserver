@@ -753,7 +753,8 @@ public class GraphResultFormatter {
                 System.out.println("Objects: " + objects.toString());
                 if (objects.isArray()) {
                     for (JsonNode obj : objects) {
-                        String name = extractNameFromObject(obj);
+                        // 直接处理字符串或通过extractNameFromObject提取
+                        String name = obj.isTextual() ? obj.asText() : extractNameFromObject(obj);
                         if (name != null && !name.trim().isEmpty()) {
                             objectsArray.add(name);
                             System.out.println("Added name from object: " + name);
