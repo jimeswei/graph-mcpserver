@@ -92,7 +92,11 @@ import static com.example.graph.mcp.constant.GraphConstants.*;
         log.debug("Raw Gremlin response: {}", response.getBody());
 
         String threadId = UUID.randomUUID().toString();
-        String originalResult = GraphResultFormatter.formatRelationChain(response);
+        String sessionId = UUID.randomUUID().toString();
+        
+        // 直接调用 GraphAnalysisService，它会自动保存到MySQL并返回标准vertices/edges格式
+        String originalResult = graphAnalysisService.relationChain(sourceName, targetName, sessionId, threadId);
+        
         return addIdToResult(originalResult, threadId);
     }
 
@@ -144,14 +148,10 @@ import static com.example.graph.mcp.constant.GraphConstants.*;
         log.debug("Dream team raw response: {}", response.getBody());
         
         String threadId = UUID.randomUUID().toString();
-        String originalResult = GraphResultFormatter.formatCommonWorks(response);
+        String sessionId = UUID.randomUUID().toString();
         
-        // 异步调用 GraphAnalysisService，不影响主查询结果
-        try {
-            graphAnalysisService.dreamTeam(names, UUID.randomUUID().toString(), threadId);
-        } catch (Exception e) {
-            log.warn("Failed to save graph analysis data for dreamTeam: {}", e.getMessage());
-        }
+        // 直接调用 GraphAnalysisService，它会自动保存到MySQL并返回标准vertices/edges格式
+        String originalResult = graphAnalysisService.dreamTeam(names, sessionId, threadId);
         
         return addIdToResult(originalResult, threadId);
     }
@@ -181,14 +181,10 @@ import static com.example.graph.mcp.constant.GraphConstants.*;
         log.debug("Raw similarity response: {}", response.getBody());
         
         String threadId = UUID.randomUUID().toString();
-        String originalResult = GraphResultFormatter.formatSimilarity(response);
+        String sessionId = UUID.randomUUID().toString();
         
-        // 异步调用 GraphAnalysisService，不影响主查询结果
-        try {
-            graphAnalysisService.similarity(names, relationshipType, UUID.randomUUID().toString(), threadId);
-        } catch (Exception e) {
-            log.warn("Failed to save graph analysis data for similarity: {}", e.getMessage());
-        }
+        // 直接调用 GraphAnalysisService，它会自动保存到MySQL并返回标准vertices/edges格式
+        String originalResult = graphAnalysisService.similarity(names, relationshipType, sessionId, threadId);
         
         return addIdToResult(originalResult, threadId);
     }
@@ -199,22 +195,10 @@ import static com.example.graph.mcp.constant.GraphConstants.*;
         validateMinimumNames(names, 2);
 
         String threadId = UUID.randomUUID().toString();
+        String sessionId = UUID.randomUUID().toString();
         
-        String originalResult;
-        if (names.size() == 2) {
-            originalResult = findCommonAncestorForTwo(names.get(0), names.get(1));
-        } else {
-            int depth = (maxDepth != null && maxDepth > 0 && maxDepth <= MAX_ANCESTOR_DEPTH) ? maxDepth : DEFAULT_ANCESTOR_DEPTH;
-            log.debug("Finding common ancestors for {} within {} layers", names, depth);
-            originalResult = executeCommonAncestorQuery(names, depth);
-        }
-        
-        // 异步调用 GraphAnalysisService，不影响主查询结果
-        try {
-            graphAnalysisService.commonAncestor(names, maxDepth, UUID.randomUUID().toString(), threadId);
-        } catch (Exception e) {
-            log.warn("Failed to save graph analysis data for commonAncestor: {}", e.getMessage());
-        }
+        // 直接调用 GraphAnalysisService，它会自动保存到MySQL并返回标准vertices/edges格式
+        String originalResult = graphAnalysisService.commonAncestor(names, maxDepth, sessionId, threadId);
         
         return addIdToResult(originalResult, threadId);
     }

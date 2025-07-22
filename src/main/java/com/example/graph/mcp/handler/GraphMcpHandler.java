@@ -64,9 +64,8 @@ public class GraphMcpHandler {
                 .header("X-Streamable-Status", "STARTED")
                 .body(Flux.create(sink -> {
                     try {
-                        sink.next(StreamableResponse.started("开始查询共同作品"));
                         String result = graphService.dreamTeam(names);
-                        sink.next(StreamableResponse.completed(result));
+                        sink.next(StreamableResponse.completed("dream_team_common_works", result));
                         sink.complete();
                     } catch (Exception e) {
                         log.error("查询共同作品失败", e);
