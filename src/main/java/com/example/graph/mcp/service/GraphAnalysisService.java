@@ -42,17 +42,22 @@ public class GraphAnalysisService {
         "g.V().hasLabel('celebrity').has('name', within([${name1}, ${name2}]))" +
         ".union(" +
             "__.has('name', within([${name1}]))" +
-            ".both('celebrity_celebrity')" +
+            ".bothE('celebrity_celebrity').as('edge')" +
+            ".otherV()" +
             ".where(__.both('celebrity_celebrity').has('name', within([${name2}])))" +
-            ".dedup()," +
+            ".select('edge')" +
+            ".project('from', 'to', 'id', 'label')" +
+            ".by(outV().values('celebrity_id'))" +
+            ".by(inV().values('celebrity_id'))" +
+            ".by(id())" +
+            ".by(label())," +
             "__.has('name', within([${name1}, ${name2}]))" +
-        ")" +
-        ".dedup()" +
-        ".project('name', 'celebrity_id', 'profession', 'education')" +
-        ".by(values('name'))" +
-        ".by(coalesce(values('celebrity_id'), constant('N/A')))" +
-        ".by(coalesce(values('profession'), constant('未知')))" +
-        ".by(coalesce(values('education'), constant('')))";
+            ".project('name', 'celebrity_id', 'profession', 'education')" +
+            ".by(values('name'))" +
+            ".by(coalesce(values('celebrity_id'), constant('N/A')))" +
+            ".by(coalesce(values('profession'), constant('未知')))" +
+            ".by(coalesce(values('education'), constant('')))" +
+        ")";
     
     private static final String SIMILARITY_ANALYSIS_GREMLIN = 
         "g.V().hasLabel('celebrity').has('name', within([${name1}]))" +
@@ -124,15 +129,17 @@ public class GraphAnalysisService {
             "__.V().hasLabel('celebrity').has('name', ${name1})" +
             ".bothE('celebrity_celebrity')" +
             ".where(otherV().where(__.both('celebrity_celebrity').has('name', ${name2})))" +
-            ".project('from', 'to')" +
+            ".project('from', 'to', 'id')" +
             ".by(outV().values('celebrity_id'))" +
-            ".by(inV().values('celebrity_id'))," +
+            ".by(inV().values('celebrity_id'))" +
+            ".by(id())," +
             "__.V().hasLabel('celebrity').has('name', ${name2})" +
             ".bothE('celebrity_celebrity')" +
             ".where(otherV().where(__.both('celebrity_celebrity').has('name', ${name1})))" +
-            ".project('from', 'to')" +
+            ".project('from', 'to', 'id')" +
             ".by(outV().values('celebrity_id'))" +
             ".by(inV().values('celebrity_id'))" +
+            ".by(id())" +
         ")";
 
     private static final String RELATION_CHAIN_GREMLIN = 
@@ -373,31 +380,32 @@ public class GraphAnalysisService {
                     continue;
                 }
                 
-                String name = (String) item.get("name");
-                String celebrityId = (String) item.get("celebrity_id");
-                String profession = (String) item.get("profession");
-                
-                if (name != null && !addedVertices.contains(name)) {
-                    Map<String, Object> vertex = new HashMap<>();
-                    vertex.put("id", celebrityId != null && !"N/A".equals(celebrityId) ? celebrityId : name);
-                    vertex.put("label", "celebrity");
-                    vertex.put("name", name);
-                    vertex.put("celebrity_id", celebrityId);
-                    vertex.put("profession", profession);
-                    vertices.add(vertex);
-                    addedVertices.add(name);
+                // 处理顶点数据
+                if (item.containsKey("name")) {
+                    String name = (String) item.get("name");
+                    String celebrityId = (String) item.get("celebrity_id");
+                    String profession = (String) item.get("profession");
                     
-                    // 为每个祖先创建与查询人员的关系边
-                    for (String queryName : names) {
-                        if (!name.equals(queryName)) {
-                            Map<String, Object> edge = new HashMap<>();
-                            edge.put("from", celebrityId != null && !"N/A".equals(celebrityId) ? celebrityId : name);
-                            edge.put("to", queryName);
-                            edge.put("label", "ancestor_relationship");
-                            edge.put("depth", item.get("relationship_depth"));
-                            edges.add(edge);
-                        }
+                    if (name != null && !addedVertices.contains(name)) {
+                        Map<String, Object> vertex = new HashMap<>();
+                        vertex.put("id", celebrityId != null && !"N/A".equals(celebrityId) ? celebrityId : name);
+                        vertex.put("label", "celebrity");
+                        vertex.put("name", name);
+                        vertex.put("celebrity_id", celebrityId);
+                        vertex.put("profession", profession);
+                        vertices.add(vertex);
+                        addedVertices.add(name);
                     }
+                }
+                
+                // 处理边数据（如果查询返回了边信息）
+                if (item.containsKey("from") && item.containsKey("to") && item.containsKey("id")) {
+                    Map<String, Object> edge = new HashMap<>();
+                    edge.put("from", item.get("from"));
+                    edge.put("to", item.get("to"));
+                    edge.put("label", item.get("label") != null ? item.get("label") : "celebrity_celebrity");
+                    edge.put("id", item.get("id"));
+                    edges.add(edge);
                 }
             }
             
@@ -471,6 +479,10 @@ public class GraphAnalysisService {
                 Map<String, Object> edge = new HashMap<>();
                 edge.put("from", item.get("from"));
                 edge.put("to", item.get("to"));
+                edge.put("label", "celebrity_celebrity");
+                if (item.containsKey("id")) {
+                    edge.put("id", item.get("id"));
+                }
                 edges.add(edge);
             }
         }
@@ -568,6 +580,9 @@ public class GraphAnalysisService {
                             edge.put("from", fromId);
                             edge.put("to", toId);
                             edge.put("label", "celebrity_celebrity");
+                            if (fromObj.containsKey("edge_id")) {
+                                edge.put("id", fromObj.get("edge_id"));
+                            }
                             edges.add(edge);
                         }
                     }
@@ -617,6 +632,9 @@ public class GraphAnalysisService {
                         edge.put("from", fromId);
                         edge.put("to", toId);
                         edge.put("label", "celebrity_celebrity");
+                        if (fromObj.containsKey("edge_id")) {
+                            edge.put("id", fromObj.get("edge_id"));
+                        }
                         edges.add(edge);
                     }
                 }
@@ -685,23 +703,18 @@ public class GraphAnalysisService {
             }
         }
         
-        // 创建edges，使用celebrity_id作为from/to
+        // 处理边数据和关系
         for (Map<String, Object> item : queryResults) {
-            if (item.containsKey("name")) {
-                String currentName = (String) item.get("name");
-                String currentId = nameToIdMap.getOrDefault(currentName, currentName);
-                
-                for (String queryName : names) {
-                    if (!queryName.equals(currentName)) {
-                        String queryId = nameToIdMap.getOrDefault(queryName, queryName);
-                        
-                        Map<String, Object> edge = new HashMap<>();
-                        edge.put("from", currentId);
-                        edge.put("to", queryId);
-                        edge.put("label", "celebrity_celebrity");
-                        edges.add(edge);
-                    }
+            if (item.containsKey("from") && item.containsKey("to")) {
+                // 这是从查询返回的边数据
+                Map<String, Object> edge = new HashMap<>();
+                edge.put("from", item.get("from"));
+                edge.put("to", item.get("to"));
+                edge.put("label", item.get("label") != null ? item.get("label") : "celebrity_celebrity");
+                if (item.containsKey("id")) {
+                    edge.put("id", item.get("id"));
                 }
+                edges.add(edge);
             }
         }
         
@@ -762,12 +775,13 @@ public class GraphAnalysisService {
                     addedVertices.add(itemName);
                 }
                 
-                // 为相似项创建edges - 使用celebrity_celebrity标签
-                if (names.size() >= 2 && itemName != null) {
+                // 处理边数据（如果查询返回了边信息）
+                if (item.containsKey("edge_id") && item.containsKey("from") && item.containsKey("to")) {
                     Map<String, Object> edge = new HashMap<>();
-                    edge.put("from", names.get(0));
-                    edge.put("to", names.get(1));
+                    edge.put("from", item.get("from"));
+                    edge.put("to", item.get("to"));
                     edge.put("label", "celebrity_celebrity");
+                    edge.put("id", item.get("edge_id"));
                     edge.put("weight", item.get("weight"));
                     edges.add(edge);
                 }
