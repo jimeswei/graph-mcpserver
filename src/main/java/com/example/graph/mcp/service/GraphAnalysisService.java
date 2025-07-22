@@ -582,6 +582,9 @@ public class GraphAnalysisService {
                             edge.put("label", "celebrity_celebrity");
                             if (fromObj.containsKey("edge_id")) {
                                 edge.put("id", fromObj.get("edge_id"));
+                            } else {
+                                // 生成边ID：格式为 fromId>1>1>>toId
+                                edge.put("id", fromId + ">1>1>>" + toId);
                             }
                             edges.add(edge);
                         }
@@ -634,6 +637,9 @@ public class GraphAnalysisService {
                         edge.put("label", "celebrity_celebrity");
                         if (fromObj.containsKey("edge_id")) {
                             edge.put("id", fromObj.get("edge_id"));
+                        } else {
+                            // 生成边ID：格式为 fromId>1>1>>toId
+                            edge.put("id", fromId + ">1>1>>" + toId);
                         }
                         edges.add(edge);
                     }

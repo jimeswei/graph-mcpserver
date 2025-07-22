@@ -51,6 +51,7 @@ public class QueryResultHandler {
                     // 处理名字数组格式
                     for (int i = 0; i < pathItem.size(); i++) {
                         JsonNode nameNode = pathItem.get(i);
+                        
                         if (nameNode.isTextual()) {
                             ObjectNode node = objectMapper.createObjectNode();
                             String name = nameNode.asText();
@@ -62,10 +63,41 @@ public class QueryResultHandler {
                                 JsonNode nextNameNode = pathItem.get(i + 1);
                                 if (nextNameNode.isTextual()) {
                                     ObjectNode relationship = objectMapper.createObjectNode();
-                                    relationship.put("type", "好友关系");
+                                    relationship.put("type", "关联");
                                     relationship.put("source", name);
                                     relationship.put("target", nextNameNode.asText());
                                     relationshipsArray.add(relationship);
+                                }
+                            }
+                        } else if (nameNode.isObject()) {
+                            // 处理可能的对象格式的节点
+                            String name = extractValue(nameNode, "name");
+                            if (name != null && !name.trim().isEmpty()) {
+                                ObjectNode node = objectMapper.createObjectNode();
+                                node.put("name", name);
+                                String profession = extractValue(nameNode, "profession");
+                                if (profession != null) {
+                                    node.put("profession", profession);
+                                }
+                                nodesArray.add(node);
+                                
+                                // 如果不是最后一个节点，创建关系
+                                if (i < pathItem.size() - 1) {
+                                    JsonNode nextNameNode = pathItem.get(i + 1);
+                                    String nextName = null;
+                                    if (nextNameNode.isTextual()) {
+                                        nextName = nextNameNode.asText();
+                                    } else if (nextNameNode.isObject()) {
+                                        nextName = extractValue(nextNameNode, "name");
+                                    }
+                                    
+                                    if (nextName != null && !nextName.trim().isEmpty()) {
+                                        ObjectNode relationship = objectMapper.createObjectNode();
+                                        relationship.put("type", "关联");
+                                        relationship.put("source", name);
+                                        relationship.put("target", nextName);
+                                        relationshipsArray.add(relationship);
+                                    }
                                 }
                             }
                         }
@@ -80,10 +112,20 @@ public class QueryResultHandler {
                             JsonNode obj = objects.get(i);
                             ObjectNode node = objectMapper.createObjectNode();
                             
-                            // 提取节点信息
-                            String name = extractValue(obj, "name");
-                            String profession = extractValue(obj, "profession");
-                            if (name != null) {
+                            String name = null;
+                            String profession = null;
+                            
+                            // 检查obj是字符串还是对象
+                            if (obj.isTextual()) {
+                                // 如果是字符串，直接作为名字
+                                name = obj.asText();
+                            } else if (obj.isObject()) {
+                                // 如果是对象，提取字段
+                                name = extractValue(obj, "name");
+                                profession = extractValue(obj, "profession");
+                            }
+                            
+                            if (name != null && !name.trim().isEmpty()) {
                                 node.put("name", name);
                                 if (profession != null) {
                                     node.put("profession", profession);
@@ -92,18 +134,35 @@ public class QueryResultHandler {
                             }
                             
                             // 如果不是最后一个节点，处理关系
-                            if (i < objects.size() - 1) {
-                                ObjectNode relationship = objectMapper.createObjectNode();
-                                String weight = extractValue(obj, "weight");
-                                String type = extractValue(obj, "relationship_type");
+                            if (i < objects.size() - 1 && name != null) {
+                                JsonNode nextObj = objects.get(i + 1);
+                                String nextName = null;
                                 
-                                if (weight != null) {
-                                    relationship.put("weight", weight);
+                                if (nextObj.isTextual()) {
+                                    nextName = nextObj.asText();
+                                } else if (nextObj.isObject()) {
+                                    nextName = extractValue(nextObj, "name");
                                 }
-                                relationship.put("type", type != null ? type : "关联");
-                                relationship.put("source", name);
-                                relationship.put("target", extractValue(objects.get(i + 1), "name"));
-                                relationshipsArray.add(relationship);
+                                
+                                if (nextName != null && !nextName.trim().isEmpty()) {
+                                    ObjectNode relationship = objectMapper.createObjectNode();
+                                    
+                                    // 尝试从对象中提取关系信息
+                                    String weight = null;
+                                    String type = null;
+                                    if (obj.isObject()) {
+                                        weight = extractValue(obj, "weight");
+                                        type = extractValue(obj, "relationship_type");
+                                    }
+                                    
+                                    if (weight != null) {
+                                        relationship.put("weight", weight);
+                                    }
+                                    relationship.put("type", type != null ? type : "关联");
+                                    relationship.put("source", name);
+                                    relationship.put("target", nextName);
+                                    relationshipsArray.add(relationship);
+                                }
                             }
                         }
                     }
