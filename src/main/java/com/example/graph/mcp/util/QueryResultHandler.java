@@ -41,13 +41,39 @@ public class QueryResultHandler {
         ArrayNode pathsArray = result.putArray("paths");
         
         if (root.isArray()) {
-            for (JsonNode path : root) {
+            for (JsonNode pathItem : root) {
                 ObjectNode pathNode = objectMapper.createObjectNode();
                 ArrayNode nodesArray = pathNode.putArray("nodes");
                 ArrayNode relationshipsArray = pathNode.putArray("relationships");
                 
-                if (path.has("objects")) {
-                    JsonNode objects = path.get("objects");
+                // RELATION_CHAIN_QUERY返回的是.path().by('name')，即直接的名字数组
+                if (pathItem.isArray()) {
+                    // 处理名字数组格式
+                    for (int i = 0; i < pathItem.size(); i++) {
+                        JsonNode nameNode = pathItem.get(i);
+                        if (nameNode.isTextual()) {
+                            ObjectNode node = objectMapper.createObjectNode();
+                            String name = nameNode.asText();
+                            node.put("name", name);
+                            nodesArray.add(node);
+                            
+                            // 如果不是最后一个节点，创建关系
+                            if (i < pathItem.size() - 1) {
+                                JsonNode nextNameNode = pathItem.get(i + 1);
+                                if (nextNameNode.isTextual()) {
+                                    ObjectNode relationship = objectMapper.createObjectNode();
+                                    relationship.put("type", "好友关系");
+                                    relationship.put("source", name);
+                                    relationship.put("target", nextNameNode.asText());
+                                    relationshipsArray.add(relationship);
+                                }
+                            }
+                        }
+                    }
+                }
+                // 兼容处理复杂对象格式
+                else if (pathItem.has("objects")) {
+                    JsonNode objects = pathItem.get("objects");
                     if (objects.isArray()) {
                         // 处理节点
                         for (int i = 0; i < objects.size(); i++) {
@@ -134,11 +160,29 @@ public class QueryResultHandler {
         
         if (root.isArray()) {
             for (JsonNode item : root) {
-                // 处理 commonFriend 部分
-                if (item.has("commonFriend")) {
+                // MUTUAL_FRIEND_QUERY返回的是直接的名字字符串，不是对象
+                if (item.isTextual()) {
+                    String name = item.asText();
+                    if (name != null && !name.trim().isEmpty() && !mutualFriends.contains(name)) {
+                        mutualFriends.add(name);
+                    }
+                }
+                // 兼容处理可能的对象格式
+                else if (item.has("commonFriend")) {
                     JsonNode friend = item.get("commonFriend");
                     String name = extractValue(friend, "name");
                     String profession = extractValue(friend, "profession");
+                    
+                    if (name != null && !mutualFriends.contains(name)) {
+                        String friendInfo = profession != null ? 
+                            String.format("%s (%s)", name, profession) : name;
+                        mutualFriends.add(friendInfo);
+                    }
+                }
+                // 兼容处理直接的name字段对象
+                else if (item.has("name")) {
+                    String name = extractValue(item, "name");
+                    String profession = extractValue(item, "profession");
                     
                     if (name != null && !mutualFriends.contains(name)) {
                         String friendInfo = profession != null ? 
@@ -305,5 +349,22 @@ public class QueryResultHandler {
         }
 
         return processedResult;
+    }
+
+    /**
+     * 截断结果以适应模型输出限制
+     */
+    public static String truncateResult(String result) {
+        if (result == null) {
+            return null;
+        }
+        
+        final int MAX_LENGTH = 2000; // 最大字符数限制
+        if (result.length() <= MAX_LENGTH) {
+            return result;
+        }
+        
+        // 截断并添加省略标记
+        return result.substring(0, MAX_LENGTH - 10) + "...[截断]";
     }
 }

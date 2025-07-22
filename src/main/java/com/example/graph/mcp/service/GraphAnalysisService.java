@@ -1,6 +1,6 @@
 package com.example.graph.mcp.service;
 
-import com.example.graph.mcp.constant.GraphConstants;
+
 import com.example.graph.mcp.util.GremlinQueryUtil;
 import com.example.graph.mcp.util.JsonExtractor;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -379,6 +379,7 @@ public class GraphAnalysisService {
                 
                 if (name != null && !addedVertices.contains(name)) {
                     Map<String, Object> vertex = new HashMap<>();
+                    vertex.put("id", celebrityId != null && !"N/A".equals(celebrityId) ? celebrityId : name);
                     vertex.put("label", "celebrity");
                     vertex.put("name", name);
                     vertex.put("celebrity_id", celebrityId);
@@ -457,7 +458,11 @@ public class GraphAnalysisService {
             if (item.containsKey("name")) {
                 // 这是vertex数据
                 Map<String, Object> vertex = new HashMap<>();
-                vertex.put("name", item.get("name"));
+                String celebrityId = (String) item.get("celebrity_id");
+                String name = (String) item.get("name");
+                vertex.put("id", celebrityId != null && !"N/A".equals(celebrityId) && !celebrityId.trim().isEmpty() ? celebrityId : name);
+                vertex.put("label", "celebrity");
+                vertex.put("name", name);
                 vertex.put("education", item.get("education"));
                 vertex.put("profession", item.get("profession"));
                 vertices.add(vertex);
@@ -532,6 +537,7 @@ public class GraphAnalysisService {
                         
                         if (name != null && !addedVertices.contains(name)) {
                             Map<String, Object> vertex = new HashMap<>();
+                            vertex.put("id", celebrityId != null && !"N/A".equals(celebrityId) ? celebrityId : name);
                             vertex.put("label", "celebrity");
                             vertex.put("name", name);
                             vertex.put("education", obj.get("education"));
@@ -580,6 +586,7 @@ public class GraphAnalysisService {
                     
                     if (name != null && !addedVertices.contains(name)) {
                         Map<String, Object> vertex = new HashMap<>();
+                        vertex.put("id", celebrityId != null && !"N/A".equals(celebrityId) ? celebrityId : name);
                         vertex.put("label", "celebrity");
                         vertex.put("name", name);
                         vertex.put("education", obj.get("education"));
@@ -662,15 +669,16 @@ public class GraphAnalysisService {
             if (item.containsKey("name")) {
                 // 这是celebrity数据，作为vertex
                 Map<String, Object> vertex = new HashMap<>();
+                String celebrityId = (String) item.get("celebrity_id");
+                String name = (String) item.get("name");
+                vertex.put("id", celebrityId != null && !"N/A".equals(celebrityId) && !celebrityId.trim().isEmpty() ? celebrityId : name);
                 vertex.put("label", "celebrity");
-                vertex.put("name", item.get("name"));
+                vertex.put("name", name);
                 vertex.put("education", item.get("education"));
                 vertex.put("profession", item.get("profession"));
                 vertices.add(vertex);
                 
                 // 收集name到celebrity_id的映射
-                String name = (String) item.get("name");
-                String celebrityId = (String) item.get("celebrity_id");
                 if (celebrityId != null && !"N/A".equals(celebrityId)) {
                     nameToIdMap.put(name, celebrityId);
                 }
@@ -732,15 +740,18 @@ public class GraphAnalysisService {
                     Map<String, Object> vertex = new HashMap<>();
                     
                     if ("common_work".equals(type)) {
+                        vertex.put("id", itemName);
                         vertex.put("label", "work");
                         vertex.put("name", itemName);
                         vertex.put("work_type", "作品");
                     } else if ("common_friend".equals(type)) {
+                        vertex.put("id", itemName);
                         vertex.put("label", "celebrity");
                         vertex.put("name", itemName);
                         vertex.put("profession", "艺人");
                         vertex.put("education", "");
                     } else {
+                        vertex.put("id", itemName);
                         vertex.put("label", "celebrity");
                         vertex.put("name", itemName);
                         vertex.put("profession", type != null ? type : "未知");

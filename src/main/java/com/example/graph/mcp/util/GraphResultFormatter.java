@@ -146,7 +146,20 @@ public class GraphResultFormatter {
     private static ObjectNode createVertexNode(Vertex vertex) {
         ObjectNode node = mapper.createObjectNode();
         
-        // 创建数组格式的属性值
+        // 添加id字段
+        if (vertex.id != null && !vertex.id.trim().isEmpty()) {
+            node.put("id", vertex.id);
+        }
+        
+        // 添加label字段
+        node.put("label", "celebrity");
+        
+        // 添加name字段
+        if (vertex.name != null && !vertex.name.trim().isEmpty()) {
+            node.put("name", vertex.name);
+        }
+        
+        // 创建数组格式的属性值（保持向后兼容）
         if (vertex.name != null && !vertex.name.trim().isEmpty()) {
             ArrayNode titleArray = mapper.createArrayNode();
             titleArray.add(vertex.name);
@@ -157,6 +170,15 @@ public class GraphResultFormatter {
             ArrayNode descArray = mapper.createArrayNode();
             descArray.add(vertex.description);
             node.set("description", descArray);
+        }
+        
+        // 添加其他属性
+        if (vertex.education != null && !vertex.education.trim().isEmpty()) {
+            node.put("education", vertex.education);
+        }
+        
+        if (vertex.profession != null && !vertex.profession.trim().isEmpty()) {
+            node.put("profession", vertex.profession);
         }
         
         return node;
@@ -219,7 +241,7 @@ public class GraphResultFormatter {
                 for (JsonNode nameNode : pathData) {
                     String name = nameNode.asText();
                     if (name != null && !name.trim().isEmpty()) {
-                        vertices.add(new Vertex(name, null, null, null, null, null));
+                        vertices.add(new Vertex(name, name, null, null, null, null, null, null, null));
                     }
                 }
                 
@@ -301,7 +323,7 @@ public class GraphResultFormatter {
                 
                 if (title != null) {
                     // 创建作品节点，包含所有信息
-                    Vertex workVertex = new Vertex(title, null, workType, null, null, null, releaseDate, description);
+                    Vertex workVertex = new Vertex(title, title, null, workType, null, null, null, releaseDate, description);
                     vertices.add(workVertex);
                 }
             }
@@ -345,7 +367,7 @@ public class GraphResultFormatter {
                     }
                     
                     if (title != null) {
-                        vertices.add(new Vertex(title, null, type, null, null, null, null, description));
+                        vertices.add(new Vertex(title, title, null, type, null, null, null, null, description));
                     }
                 }
             }
@@ -379,10 +401,12 @@ public class GraphResultFormatter {
             for (JsonNode item : root) {
                 // 处理查询到的人物和祖先
                 if (item.has("p1")) {
-                    vertices.add(new Vertex(item.get("p1").asText(), null, null, null, null, null));
+                    String name = item.get("p1").asText();
+                    vertices.add(new Vertex(name, name, null, null, null, null, null, null, null));
                 }
                 if (item.has("p2")) {
-                    vertices.add(new Vertex(item.get("p2").asText(), null, null, null, null, null));
+                    String name = item.get("p2").asText();
+                    vertices.add(new Vertex(name, name, null, null, null, null, null, null, null));
                 }
                 if (item.has("grandparent1") || item.has("parent1")) {
                     JsonNode ancestor = item.has("grandparent1") ? 
@@ -518,6 +542,7 @@ public class GraphResultFormatter {
     }
     
     private static class Vertex {
+        final String id;
         final String name;
         final String gender;
         final String profession;
@@ -528,11 +553,17 @@ public class GraphResultFormatter {
         final String description;  // 作品描述
 
         Vertex(String name, String gender, String profession, String education, String company, String nationality) {
-            this(name, gender, profession, education, company, nationality, null, null);
+            this(name, name, gender, profession, education, company, nationality, null, null);
         }
 
         Vertex(String name, String gender, String profession, String education, String company, String nationality, 
                String releaseDate, String description) {
+            this(name, name, gender, profession, education, company, nationality, releaseDate, description);
+        }
+
+        Vertex(String id, String name, String gender, String profession, String education, String company, String nationality, 
+               String releaseDate, String description) {
+            this.id = id != null ? id : name;
             this.name = name;
             this.gender = gender;
             this.profession = profession;
@@ -639,9 +670,22 @@ public class GraphResultFormatter {
         if (data != null && data.vertices != null) {
             for (Vertex vertex : data.vertices) {
                 ObjectNode vertexNode = mapper.createObjectNode();
+                // 添加id字段
+                if (vertex.id != null && !vertex.id.trim().isEmpty()) {
+                    vertexNode.put("id", vertex.id);
+                }
+                // 添加label字段
+                vertexNode.put("label", "celebrity");
                 vertexNode.put("name", vertex.name);
                 vertexNode.put("type", vertex.profession != null ? vertex.profession : "未知");
                 vertexNode.put("description", vertex.description != null ? vertex.description : "");
+                // 添加其他标准字段
+                if (vertex.education != null && !vertex.education.trim().isEmpty()) {
+                    vertexNode.put("education", vertex.education);
+                }
+                if (vertex.profession != null && !vertex.profession.trim().isEmpty()) {
+                    vertexNode.put("profession", vertex.profession);
+                }
                 verticesArray.add(vertexNode);
             }
         }

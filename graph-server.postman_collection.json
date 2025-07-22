@@ -1,0 +1,154 @@
+{
+	"info": {
+		"_postman_id": "01fff20f-4353-4cba-b526-f332532f4e11",
+		"name": "graph-server",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "mutual_friend_between_stars",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n   \"names\": [\"周杰伦\",\"刘德华\"]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5821/mcp/mutual_friend_between_stars",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5821",
+					"path": [
+						"mcp",
+						"mutual_friend_between_stars"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "dream_team_common_works",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"names\":[\"周杰伦\", \"刘德华\"]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5821/mcp/dream_team_common_works",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5821",
+					"path": [
+						"mcp",
+						"dream_team_common_works"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "most_recent_common_ancestor",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"names\": [\"谢振轩\", \"谢振南\"]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5821/mcp/most_recent_common_ancestor",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5821",
+					"path": [
+						"mcp",
+						"most_recent_common_ancestor"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "similarity_between_stars",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"names\": [\n        \"刘德华\",\n        \"周杰伦\"\n    ],\n    \"relationshipType\": \"合作\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5821/mcp/similarity_between_stars",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5821",
+					"path": [
+						"mcp",
+						"similarity_between_stars"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "relation_chain_between_stars",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"sourceName\": \"周杰伦\",\n    \"targetName\": \"刘德华\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5821/mcp/relation_chain_between_stars",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5821",
+					"path": [
+						"mcp",
+						"relation_chain_between_stars"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
