@@ -36,12 +36,14 @@ public class GraphConstants {
                         ".V().hasLabel('%s')" +
                         ".where(__.in('%s', '%s').where(within('stars')).count().is(%d)).dedup().path()";
 
-        public static final String SIMILARITY_QUERY = "g.V().has('%s', 'name', within(${names}))" +
-                        ".bothE('%s').has('e_type', '${relationshipType}').otherV()" +
-                        ".groupCount().by('name').unfold()" +
+        public static final String SIMILARITY_QUERY = "g.V().has('%s', 'name', within([${names}]))" +
+                        ".as('person').bothE('%s').has('e_type', '${relationshipType}').otherV().as('connected')" +
+                        ".select('person', 'connected').by('name').by('name')" +
+                        ".groupCount().unfold()" +
                         ".where(select(Column.values).is(gte(2)))" +
-                        ".project('name', 'type', 'weight')" +
-                        ".by(select(Column.keys))" +
+                        ".project('source', 'target', 'type', 'strength')" +
+                        ".by(select(Column.keys).unfold().limit(1))" +
+                        ".by(select(Column.keys).unfold().tail(1))" +
                         ".by(constant('${relationshipType}'))" +
                         ".by(select(Column.values))";
 

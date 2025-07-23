@@ -17,6 +17,7 @@ import static com.example.graph.mcp.constant.GraphConstants.*;
 
 public class QueryResultHandler {
     private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(QueryResultHandler.class);
 
     /**
      * 处理图查询结果 - 集成结果优化器
@@ -425,5 +426,217 @@ public class QueryResultHandler {
         
         // 截断并添加省略标记
         return result.substring(0, MAX_LENGTH - 10) + "...[截断]";
+    }
+    
+    /**
+     * 专门处理相似度查询结果
+     */
+    public static String processSimilarityQueryResult(ResponseEntity<String> response) throws IOException {
+        try {
+            String responseBody = response.getBody();
+            log.info("原始相似度查询响应: {}", responseBody);
+            
+            if (responseBody == null || responseBody.trim().isEmpty()) {
+                log.warn("相似度查询响应为空");
+                return "{\"details\": [], \"relations\": [], \"message\": \"未找到相似关系\"}";
+            }
+            
+            // 直接解析Gremlin查询返回的数据
+            JsonNode rootNode = objectMapper.readTree(responseBody);
+            log.info("解析后的根节点: {}", rootNode.toString());
+            
+            // 尝试多种可能的数据路径
+            JsonNode dataNode = null;
+            if (rootNode.has("data")) {
+                dataNode = rootNode.get("data");
+                log.info("找到data节点: {}", dataNode.toString());
+            } else if (rootNode.isArray()) {
+                dataNode = rootNode;
+                log.info("根节点就是数组: {}", dataNode.toString());
+            } else {
+                log.warn("未找到有效数据节点, 根节点结构: {}", rootNode.toString());
+                return "{\"details\": [], \"relations\": [], \"message\": \"响应数据结构异常\"}";
+            }
+            
+            // 构建标准的similarity结果格式
+            ObjectNode result = objectMapper.createObjectNode();
+            ArrayNode detailsArray = result.putArray("details");
+            
+            if (dataNode.isArray()) {
+                log.info("处理数组数据，元素数量: {}", dataNode.size());
+                for (int i = 0; i < dataNode.size(); i++) {
+                    JsonNode item = dataNode.get(i);
+                    log.info("处理第{}个元素: {}", i, item.toString());
+                    
+                    ObjectNode similarity = objectMapper.createObjectNode();
+                    // 处理新的相似度查询结果字段
+                    if (item.has("person1")) {
+                        similarity.put("person1", item.get("person1").asText());
+                        log.info("找到person1字段: {}", item.get("person1").asText());
+                    }
+                    if (item.has("person2")) {
+                        similarity.put("person2", item.get("person2").asText());
+                        log.info("找到person2字段: {}", item.get("person2").asText());
+                    }
+                    if (item.has("commonConnection")) {
+                        similarity.put("commonConnection", item.get("commonConnection").asText());
+                        log.info("找到commonConnection字段: {}", item.get("commonConnection").asText());
+                    }
+                    if (item.has("relationshipType")) {
+                        similarity.put("relationshipType", item.get("relationshipType").asText());
+                        log.info("找到relationshipType字段: {}", item.get("relationshipType").asText());
+                    }
+                    // 兼容旧的字段名
+                    if (item.has("source")) {
+                        similarity.put("source", item.get("source").asText());
+                        log.info("找到source字段: {}", item.get("source").asText());
+                    }
+                    if (item.has("target")) {
+                        similarity.put("target", item.get("target").asText());
+                        log.info("找到target字段: {}", item.get("target").asText());
+                    }
+                    if (item.has("type")) {
+                        similarity.put("type", item.get("type").asText());
+                        log.info("找到type字段: {}", item.get("type").asText());
+                    }
+                    if (item.has("strength")) {
+                        similarity.put("strength", item.get("strength").asInt());
+                        log.info("找到strength字段: {}", item.get("strength").asInt());
+                    }
+                    
+                    // 如果是普通对象，直接添加所有字段
+                    if (item.isObject()) {
+                        item.fields().forEachRemaining(entry -> {
+                            similarity.set(entry.getKey(), entry.getValue());
+                            log.info("添加字段: {} = {}", entry.getKey(), entry.getValue());
+                        });
+                    }
+                    
+                    detailsArray.add(similarity);
+                }
+            } else if (dataNode.isObject()) {
+                log.info("处理单个对象数据: {}", dataNode.toString());
+                ObjectNode similarity = objectMapper.createObjectNode();
+                dataNode.fields().forEachRemaining(entry -> {
+                    similarity.set(entry.getKey(), entry.getValue());
+                    log.info("添加字段: {} = {}", entry.getKey(), entry.getValue());
+                });
+                detailsArray.add(similarity);
+            }
+            
+            result.put("relations", objectMapper.createArrayNode());
+            String finalResult = objectMapper.writeValueAsString(result);
+            log.info("最终相似度结果: {}", finalResult);
+            return finalResult;
+            
+        } catch (Exception e) {
+            log.error("处理相似度结果时出错: {}", e.getMessage(), e);
+            return "{\"details\": [], \"relations\": [], \"message\": \"处理相似度结果时出错\", \"error\": \"" + e.getMessage() + "\"}";
+        }
+    }
+    
+    /**
+     * 专门处理共同祖先查询结果
+     */
+    public static String processCommonAncestorQueryResult(ResponseEntity<String> response) throws IOException {
+        try {
+            String responseBody = response.getBody();
+            log.info("原始共同祖先查询响应: {}", responseBody);
+            
+            if (responseBody == null || responseBody.trim().isEmpty()) {
+                log.warn("共同祖先查询响应为空");
+                return "{\"details\": [], \"relations\": [], \"message\": \"未找到共同祖先\"}";
+            }
+            
+            // 直接解析Gremlin查询返回的数据
+            JsonNode rootNode = objectMapper.readTree(responseBody);
+            log.info("解析后的根节点: {}", rootNode.toString());
+            
+            // 尝试多种可能的数据路径
+            JsonNode dataNode = null;
+            if (rootNode.has("data")) {
+                dataNode = rootNode.get("data");
+                log.info("找到data节点: {}", dataNode.toString());
+            } else if (rootNode.isArray()) {
+                dataNode = rootNode;
+                log.info("根节点就是数组: {}", dataNode.toString());
+            } else {
+                log.warn("未找到有效数据节点, 根节点结构: {}", rootNode.toString());
+                return "{\"details\": [], \"relations\": [], \"message\": \"响应数据结构异常\"}";
+            }
+            
+            // 构建标准的common ancestor结果格式
+            ObjectNode result = objectMapper.createObjectNode();
+            ArrayNode detailsArray = result.putArray("details");
+            
+            if (dataNode.isArray()) {
+                log.info("处理数组数据，元素数量: {}", dataNode.size());
+                for (int i = 0; i < dataNode.size(); i++) {
+                    JsonNode item = dataNode.get(i);
+                    log.info("处理第{}个祖先元素: {}", i, item.toString());
+                    
+                    ObjectNode ancestor = objectMapper.createObjectNode();
+                    
+                    // 处理name字段
+                    if (item.has("name")) {
+                        JsonNode nameNode = item.get("name");
+                        if (nameNode.isArray() && nameNode.size() > 0) {
+                            ancestor.put("name", nameNode.get(0).asText());
+                            log.info("找到name数组字段: {}", nameNode.get(0).asText());
+                        } else if (nameNode.isTextual()) {
+                            ancestor.put("name", nameNode.asText());
+                            log.info("找到name文本字段: {}", nameNode.asText());
+                        }
+                    }
+                    
+                    // 处理profession字段
+                    if (item.has("profession")) {
+                        JsonNode professionNode = item.get("profession");
+                        if (professionNode.isArray() && professionNode.size() > 0) {
+                            ancestor.put("profession", professionNode.get(0).asText());
+                            log.info("找到profession数组字段: {}", professionNode.get(0).asText());
+                        } else if (professionNode.isTextual()) {
+                            ancestor.put("profession", professionNode.asText());
+                            log.info("找到profession文本字段: {}", professionNode.asText());
+                        }
+                    }
+                    
+                    // 处理id字段
+                    if (item.has("id")) {
+                        ancestor.put("id", item.get("id").asText());
+                        log.info("找到id字段: {}", item.get("id").asText());
+                    }
+                    
+                    // 添加所有其他字段
+                    if (item.isObject()) {
+                        item.fields().forEachRemaining(entry -> {
+                            if (!ancestor.has(entry.getKey())) {
+                                ancestor.set(entry.getKey(), entry.getValue());
+                                log.info("添加其他字段: {} = {}", entry.getKey(), entry.getValue());
+                            }
+                        });
+                    }
+                    
+                    detailsArray.add(ancestor);
+                }
+            } else if (dataNode.isObject()) {
+                log.info("处理单个祖先对象数据: {}", dataNode.toString());
+                ObjectNode ancestor = objectMapper.createObjectNode();
+                dataNode.fields().forEachRemaining(entry -> {
+                    ancestor.set(entry.getKey(), entry.getValue());
+                    log.info("添加字段: {} = {}", entry.getKey(), entry.getValue());
+                });
+                detailsArray.add(ancestor);
+            }
+            
+            result.put("relations", objectMapper.createArrayNode());
+            String finalResult = objectMapper.writeValueAsString(result);
+            log.info("最终共同祖先结果: {}", finalResult);
+            return finalResult;
+            
+        } catch (Exception e) {
+            log.error("处理共同祖先结果时出错: {}", e.getMessage(), e);
+            return "{\"details\": [], \"relations\": [], \"message\": \"处理共同祖先结果时出错\", \"error\": \"" + e.getMessage() + "\"}";
+        }
     }
 }
