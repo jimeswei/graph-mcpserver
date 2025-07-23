@@ -60,53 +60,99 @@ public class GraphAnalysisService {
         ")";
     
     private static final String SIMILARITY_ANALYSIS_GREMLIN = 
-        "g.V().hasLabel('celebrity').has('name', within([${name1}]))" +
+        "g.V().hasLabel('celebrity').has('name', within([${name1}, ${name2}]))" +
         ".union(" +
-            // 共同作品维度
-            "out('celebrity_work').as('common_work')" +
+            // 返回查询的两个名人节点
+            "__.identity()" +
+            ".project('name', 'celebrity_id', 'profession', 'education')" +
+            ".by(values('name'))" +
+            ".by(coalesce(values('celebrity_id'), constant('N/A')))" +
+            ".by(coalesce(values('profession'), constant('未知')))" +
+            ".by(coalesce(values('education'), constant('')))," +
+            
+            // 共同作品节点
+            "__.has('name', within([${name1}]))" +
+            ".out('celebrity_work').as('common_work')" +
             ".where(__.in('celebrity_work').has('name', within([${name2}])))" +
             ".select('common_work')" +
-            ".project('type', 'item', 'weight')" +
-            ".by(constant('common_work'))" +
+            ".project('name', 'work_id', 'work_type', 'title')" +
             ".by(coalesce(values('title'), values('work_name')))" +
-            ".by(constant(3.0))," +
+            ".by(coalesce(values('work_id'), id()))" +
+            ".by(constant('work'))" +
+            ".by(coalesce(values('title'), values('work_name')))," +
             
-            // 共同关系维度
-            "both('celebrity_celebrity').as('common_friend')" +
+            // 共同关系节点
+            "__.has('name', within([${name1}]))" +
+            ".both('celebrity_celebrity').as('common_friend')" +
             ".where(__.both('celebrity_celebrity').has('name', within([${name2}])))" +
             ".select('common_friend')" +
-            ".project('type', 'item', 'weight')" +
-            ".by(constant('common_friend'))" +
+            ".project('name', 'celebrity_id', 'profession', 'education')" +
             ".by(values('name'))" +
-            ".by(constant(2.0))," +
-            
-            // 共同属性维度
-            "as('p1').select('p1')" +
-            ".project('type', 'item', 'weight')" +
-            ".by(constant('profession_match'))" +
+            ".by(coalesce(values('celebrity_id'), constant('N/A')))" +
             ".by(coalesce(values('profession'), constant('未知')))" +
-            ".by(constant(1.0))" +
+            ".by(coalesce(values('education'), constant('')))," +
+            
+            // 获取边关系 - 名人之间的关系
+            "__.has('name', within([${name1}]))" +
+            ".bothE('celebrity_celebrity')" +
+            ".where(otherV().has('name', within([${name2}])))" +
+            ".project('from', 'to', 'id', 'label')" +
+            ".by(outV().coalesce(values('celebrity_id'), values('name')))" +
+            ".by(inV().coalesce(values('celebrity_id'), values('name')))" +
+            ".by(id())" +
+            ".by(label())" +
         ")";
     
     private static final String COMMON_ANCESTOR_GREMLIN = 
-        "g.V().hasLabel('celebrity').has('name', within([${name1}]))" +
-        ".repeat(__.in('celebrity_celebrity').simplePath())" +
-        ".emit()" +
-        ".times(${maxDepth})" +
-        ".as('ancestor')" +
-        ".where(" +
-            "__.repeat(__.out('celebrity_celebrity').simplePath())" +
+        "g.V().hasLabel('celebrity').has('name', within([${name1}, ${name2}]))" +
+        ".union(" +
+            // 返回查询的两个名人节点
+            "__.identity()" +
+            ".project('name', 'celebrity_id', 'profession', 'education')" +
+            ".by(values('name'))" +
+            ".by(coalesce(values('celebrity_id'), constant('N/A')))" +
+            ".by(coalesce(values('profession'), constant('未知')))" +
+            ".by(coalesce(values('education'), constant('')))," +
+            
+            // 查找共同祖先节点
+            "__.has('name', within([${name1}]))" +
+            ".repeat(__.in('celebrity_celebrity').simplePath())" +
             ".emit()" +
             ".times(${maxDepth})" +
-            ".has('name', within([${name2}]))" +
-        ")" +
-        ".select('ancestor')" +
-        ".dedup()" +
-        ".project('name', 'celebrity_id', 'profession', 'relationship_depth')" +
-        ".by(values('name'))" +
-        ".by(coalesce(values('celebrity_id'), constant('N/A')))" +
-        ".by(coalesce(values('profession'), constant('未知')))" +
-        ".by(__.in('celebrity_celebrity').where(has('name', within([${name1}]))).path().count(local))";
+            ".as('ancestor')" +
+            ".where(" +
+                "__.repeat(__.out('celebrity_celebrity').simplePath())" +
+                ".emit()" +
+                ".times(${maxDepth})" +
+                ".has('name', within([${name2}]))" +
+            ")" +
+            ".select('ancestor')" +
+            ".dedup()" +
+            ".project('name', 'celebrity_id', 'profession', 'education')" +
+            ".by(values('name'))" +
+            ".by(coalesce(values('celebrity_id'), constant('N/A')))" +
+            ".by(coalesce(values('profession'), constant('未知')))" +
+            ".by(coalesce(values('education'), constant('')))," +
+            
+            // 获取相关的边关系
+            "__.has('name', within([${name1}]))" +
+            ".repeat(__.inE('celebrity_celebrity').as('edge').outV().simplePath())" +
+            ".emit()" +
+            ".times(${maxDepth})" +
+            ".where(" +
+                "__.repeat(__.outE('celebrity_celebrity').inV().simplePath())" +
+                ".emit()" +
+                ".times(${maxDepth})" +
+                ".has('name', within([${name2}]))" +
+            ")" +
+            ".select('edge')" +
+            ".dedup()" +
+            ".project('from', 'to', 'id', 'label')" +
+            ".by(outV().coalesce(values('celebrity_id'), values('name')))" +
+            ".by(inV().coalesce(values('celebrity_id'), values('name')))" +
+            ".by(id())" +
+            ".by(label())" +
+        ")";
     
     private static final String ENHANCED_MUTUAL_FRIENDS_GREMLIN = 
         "g.V().hasLabel('celebrity').has('name', ${name1})" +
@@ -748,47 +794,56 @@ public class GraphAnalysisService {
             
             // 分离vertices和edges
             List<Map<String, Object>> vertices = new ArrayList<>();
-            List<Map<String, Object>> edges = new ArrayList<>();
+            List<Map<String, Object>> edges = new ArrayList<>();  
             Set<String> addedVertices = new HashSet<>();
             
             for (Map<String, Object> item : queryResults) {
-                String type = (String) item.get("type");
-                String itemName = (String) item.get("item");
-                
-                if (itemName != null && !addedVertices.contains(itemName)) {
-                    Map<String, Object> vertex = new HashMap<>();
-                    
-                    if ("common_work".equals(type)) {
-                        vertex.put("id", itemName);
-                        vertex.put("label", "work");
-                        vertex.put("name", itemName);
-                        vertex.put("work_type", "作品");
-                    } else if ("common_friend".equals(type)) {
-                        vertex.put("id", itemName);
-                        vertex.put("label", "celebrity");
-                        vertex.put("name", itemName);
-                        vertex.put("profession", "艺人");
-                        vertex.put("education", "");
-                    } else {
-                        vertex.put("id", itemName);
-                        vertex.put("label", "celebrity");
-                        vertex.put("name", itemName);
-                        vertex.put("profession", type != null ? type : "未知");
-                        vertex.put("education", "");
-                    }
-                    
-                    vertices.add(vertex);
-                    addedVertices.add(itemName);
+                if (item == null) {
+                    continue;
                 }
                 
-                // 处理边数据（如果查询返回了边信息）
-                if (item.containsKey("edge_id") && item.containsKey("from") && item.containsKey("to")) {
+                // 处理顶点数据 - 名人节点
+                if (item.containsKey("name") && item.containsKey("celebrity_id")) {
+                    String name = (String) item.get("name");
+                    String celebrityId = (String) item.get("celebrity_id");
+                    String profession = (String) item.get("profession");
+                    String education = (String) item.get("education");
+                    
+                    if (name != null && !addedVertices.contains(name)) {
+                        Map<String, Object> vertex = new HashMap<>();
+                        vertex.put("id", celebrityId != null && !"N/A".equals(celebrityId) ? celebrityId : name);
+                        vertex.put("label", "celebrity");
+                        vertex.put("name", name);
+                        vertex.put("celebrity_id", celebrityId);
+                        vertex.put("profession", profession);
+                        vertex.put("education", education);
+                        vertices.add(vertex);
+                        addedVertices.add(name);
+                    }
+                }
+                // 处理顶点数据 - 作品节点
+                else if (item.containsKey("work_type") && item.get("work_type").equals("work")) {
+                    String workName = (String) item.get("name");
+                    String workId = (String) item.get("work_id");
+                    
+                    if (workName != null && !addedVertices.contains(workName)) {
+                        Map<String, Object> vertex = new HashMap<>();
+                        vertex.put("id", workId != null ? workId : workName);
+                        vertex.put("label", "work");
+                        vertex.put("name", workName);
+                        vertex.put("title", item.get("title"));
+                        vertices.add(vertex);
+                        addedVertices.add(workName);
+                    }
+                }
+                
+                // 处理边数据
+                if (item.containsKey("from") && item.containsKey("to") && item.containsKey("id")) {
                     Map<String, Object> edge = new HashMap<>();
                     edge.put("from", item.get("from"));
                     edge.put("to", item.get("to"));
-                    edge.put("label", "celebrity_celebrity");
-                    edge.put("id", item.get("edge_id"));
-                    edge.put("weight", item.get("weight"));
+                    edge.put("label", item.get("label") != null ? item.get("label") : "celebrity_celebrity");
+                    edge.put("id", item.get("id"));
                     edges.add(edge);
                 }
             }
