@@ -41,22 +41,47 @@ public class GraphAnalysisService {
     private static final String COMMON_WORKS_GREMLIN = 
         "g.V().hasLabel('celebrity').has('name', within([${name1}, ${name2}]))" +
         ".union(" +
+            // 获取所有相关的顶点：原始查询的两个名人 + 所有中间关联的名人
+            "__.has('name', within([${name1}]))" +
+            ".both('celebrity_celebrity')" +
+            ".where(__.both('celebrity_celebrity').has('name', within([${name2}])))" +
+            ".project('name', 'celebrity_id', 'profession', 'education')" +
+            ".by(values('name'))" +
+            ".by(coalesce(values('celebrity_id'), constant('N/A')))" +
+            ".by(coalesce(values('profession'), constant('未知')))" +
+            ".by(coalesce(values('education'), constant('')))," +
+            
+            // 获取原始查询的两个名人的顶点信息
+            "__.has('name', within([${name1}, ${name2}]))" +
+            ".project('name', 'celebrity_id', 'profession', 'education')" +
+            ".by(values('name'))" +
+            ".by(coalesce(values('celebrity_id'), constant('N/A')))" +
+            ".by(coalesce(values('profession'), constant('未知')))" +
+            ".by(coalesce(values('education'), constant('')))," +
+            
+            // 获取name1到中间名人的边
             "__.has('name', within([${name1}]))" +
             ".bothE('celebrity_celebrity').as('edge')" +
             ".otherV()" +
             ".where(__.both('celebrity_celebrity').has('name', within([${name2}])))" +
             ".select('edge')" +
             ".project('from', 'to', 'id', 'label')" +
-            ".by(outV().values('celebrity_id'))" +
-            ".by(inV().values('celebrity_id'))" +
+            ".by(outV().coalesce(values('celebrity_id'), values('name')))" +
+            ".by(inV().coalesce(values('celebrity_id'), values('name')))" +
             ".by(id())" +
             ".by(label())," +
-            "__.has('name', within([${name1}, ${name2}]))" +
-            ".project('name', 'celebrity_id', 'profession', 'education')" +
-            ".by(values('name'))" +
-            ".by(coalesce(values('celebrity_id'), constant('N/A')))" +
-            ".by(coalesce(values('profession'), constant('未知')))" +
-            ".by(coalesce(values('education'), constant('')))" +
+            
+            // 获取中间名人到name2的边
+            "__.has('name', within([${name2}]))" +
+            ".bothE('celebrity_celebrity').as('edge')" +
+            ".otherV()" +
+            ".where(__.both('celebrity_celebrity').has('name', within([${name1}])))" +
+            ".select('edge')" +
+            ".project('from', 'to', 'id', 'label')" +
+            ".by(outV().coalesce(values('celebrity_id'), values('name')))" +
+            ".by(inV().coalesce(values('celebrity_id'), values('name')))" +
+            ".by(id())" +
+            ".by(label())" +
         ")";
     
     private static final String SIMILARITY_ANALYSIS_GREMLIN = 
@@ -729,46 +754,57 @@ public class GraphAnalysisService {
 
         List<Map<String, Object>> queryResults = objectMapper.readValue(jsonResult, List.class);
         
-        // 分离vertices和edges
+        // 分离vertices和edges，使用Set去重
         List<Map<String, Object>> vertices = new ArrayList<>();
         List<Map<String, Object>> edges = new ArrayList<>();
-        Map<String, String> nameToIdMap = new HashMap<>();
+        Set<String> addedVertices = new HashSet<>();  // 用于去重vertices
+        Set<String> addedEdges = new HashSet<>();     // 用于去重edges
         
-        // 先收集所有celebrity信息和ID映射
+        // 先收集所有celebrity信息，避免重复
         for (Map<String, Object> item : queryResults) {
             if (item.containsKey("name")) {
                 // 这是celebrity数据，作为vertex
-                Map<String, Object> vertex = new HashMap<>();
-                String celebrityId = (String) item.get("celebrity_id");
                 String name = (String) item.get("name");
-                vertex.put("id", celebrityId != null && !"N/A".equals(celebrityId) && !celebrityId.trim().isEmpty() ? celebrityId : name);
-                vertex.put("label", "celebrity");
-                vertex.put("name", name);
-                vertex.put("education", item.get("education"));
-                vertex.put("profession", item.get("profession"));
-                vertices.add(vertex);
+                String celebrityId = (String) item.get("celebrity_id");
                 
-                // 收集name到celebrity_id的映射
-                if (celebrityId != null && !"N/A".equals(celebrityId)) {
-                    nameToIdMap.put(name, celebrityId);
+                // 使用name作为唯一标识避免重复
+                if (name != null && !addedVertices.contains(name)) {
+                    Map<String, Object> vertex = new HashMap<>();
+                    vertex.put("id", celebrityId != null && !"N/A".equals(celebrityId) && !celebrityId.trim().isEmpty() ? celebrityId : name);
+                    vertex.put("label", "celebrity");
+                    vertex.put("name", name);
+                    vertex.put("education", item.get("education"));
+                    vertex.put("profession", item.get("profession"));
+                    vertices.add(vertex);
+                    addedVertices.add(name);
                 }
             }
         }
         
-        // 处理边数据和关系
+        // 处理边数据，避免重复
         for (Map<String, Object> item : queryResults) {
             if (item.containsKey("from") && item.containsKey("to")) {
-                // 这是从查询返回的边数据
-                Map<String, Object> edge = new HashMap<>();
-                edge.put("from", item.get("from"));
-                edge.put("to", item.get("to"));
-                edge.put("label", item.get("label") != null ? item.get("label") : "celebrity_celebrity");
-                if (item.containsKey("id")) {
-                    edge.put("id", item.get("id"));
+                String from = (String) item.get("from");
+                String to = (String) item.get("to");
+                String edgeId = (String) item.get("id");
+                
+                // 创建边的唯一标识符，避免重复边
+                String edgeKey = from + "->" + to;
+                if (!addedEdges.contains(edgeKey)) {
+                    Map<String, Object> edge = new HashMap<>();
+                    edge.put("from", from);
+                    edge.put("to", to);
+                    edge.put("label", item.get("label") != null ? item.get("label") : "celebrity_celebrity");
+                    if (edgeId != null) {
+                        edge.put("id", edgeId);
+                    }
+                    edges.add(edge);
+                    addedEdges.add(edgeKey);
                 }
-                edges.add(edge);
             }
         }
+        
+        log.info("DreamTeam result built: {} vertices, {} edges", vertices.size(), edges.size());
         
         // 构建最终结果
         Map<String, Object> result = new HashMap<>();
