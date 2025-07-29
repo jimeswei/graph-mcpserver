@@ -25,29 +25,25 @@ public class GraphCacheService {
         this.graphCacheRepository = graphCacheRepository;
     }
 
-    public GraphCache saveCacheRecord(String sessionId, String threadId, String content, String operationType) {
-        if (sessionId == null || sessionId.trim().isEmpty()) {
-            throw new IllegalArgumentException("sessionId cannot be null or empty");
-        }
+    public GraphCache saveCacheRecord(String threadId, String content, String operationType) {
         if (threadId == null || threadId.trim().isEmpty()) {
             throw new IllegalArgumentException("threadId cannot be null or empty");
         }
         
         if (graphCacheRepository == null) {
-            log.warn("Database not available, skipping cache for {} operation. sessionId: {}, threadId: {}", 
-                    operationType, sessionId, threadId);
+            log.warn("Database not available, skipping cache for {} operation. threadId: {}", 
+                    operationType, threadId);
             return null;
         }
         
         try {
             GraphCache cache = new GraphCache();
-            cache.setSessionId(sessionId);
             cache.setThreadId(threadId);
             cache.setContent(content);
             
             GraphCache saved = graphCacheRepository.save(cache);
-            log.info("Saved {} cache record with ID: {}, sessionId: {}, threadId: {}", 
-                    operationType, saved.getId(), sessionId, threadId);
+            log.info("Saved {} cache record with ID: {}, threadId: {}", 
+                    operationType, saved.getId(), threadId);
             
             return saved;
         } catch (Exception e) {
@@ -57,23 +53,13 @@ public class GraphCacheService {
     }
 
     @Transactional(readOnly = true)
-    public List<GraphCache> getCacheBySessionId(String sessionId) {
-        return graphCacheRepository.findBySessionIdOrderByCreatedAtDesc(sessionId);
-    }
-
-    @Transactional(readOnly = true)
     public List<GraphCache> getCacheByThreadId(String threadId) {
-        return graphCacheRepository.findByThreadIdOrderByCreatedAtDesc(threadId);
+        return graphCacheRepository.findByThreadIdOrderByCreatedTimeDesc(threadId);
     }
 
     @Transactional(readOnly = true)
-    public List<GraphCache> getCacheBySessionAndThread(String sessionId, String threadId) {
-        return graphCacheRepository.findBySessionIdAndThreadId(sessionId, threadId);
-    }
-
-    @Transactional(readOnly = true)
-    public Optional<GraphCache> getLatestCache(String sessionId, String threadId) {
-        return graphCacheRepository.findTopBySessionIdAndThreadIdOrderByCreatedAtDesc(sessionId, threadId);
+    public Optional<GraphCache> getLatestCache(String threadId) {
+        return graphCacheRepository.findTopByThreadIdOrderByCreatedTimeDesc(threadId);
     }
 
     @Transactional(readOnly = true)
@@ -86,11 +72,6 @@ public class GraphCacheService {
         log.info("Deleted cache record with ID: {}", id);
     }
 
-    public void deleteCacheBySession(String sessionId) {
-        List<GraphCache> caches = graphCacheRepository.findBySessionId(sessionId);
-        graphCacheRepository.deleteAll(caches);
-        log.info("Deleted {} cache records for sessionId: {}", caches.size(), sessionId);
-    }
 
     public void deleteCacheByThread(String threadId) {
         List<GraphCache> caches = graphCacheRepository.findByThreadId(threadId);

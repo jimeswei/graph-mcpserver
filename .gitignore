@@ -1,34 +1,135 @@
-HELP.md
-target/
-!.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
+# ===================================
+# Java项目 + IntelliJ IDEA 忽略配置
+# ===================================
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
+# ============= IDEA 配置文件 =============
+# 用户特定的工作空间配置
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/usage.statistics.xml
+.idea/dictionaries/
+.idea/shelf/
 
-### IntelliJ IDEA ###
-.idea
-*.iws
+# 敏感配置和本地设置
+.idea/dataSources/
+.idea/dataSources.ids
+.idea/dataSources.local.xml
+.idea/sqlDataSources.xml
+.idea/dynamic.xml
+.idea/uiDesigner.xml
+
+# Gradle相关
+.idea/gradle.xml
+.idea/jarRepositories.xml
+
+# Maven相关
+.idea/compiler.xml
+.idea/libraries/
+
+# 模块文件
 *.iml
 *.ipr
+*.iws
 
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
+# ============= Java 编译文件 =============
+# 编译输出目录
+out/
+target/
 build/
+bin/
+classes/
+
+# Java字节码文件
+*.class
+
+# 日志文件
+*.log
+
+# BlueJ文件
+*.ctxt
+
+# Mobile Tools for Java (J2ME)
+.mtj.tmp/
+
+# Package Files
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# 虚拟机崩溃日志
+hs_err_pid*
+
+# ============= Maven 项目 =============
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# ============= Gradle 项目 =============
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
 
-### VS Code ###
-.vscode/
+# Gradle缓存
+/local.properties
 
+# ============= Spring Boot =============
+# Spring Boot 应用属性
+application-local.properties
+application-dev.properties
+application-*.yml
+application-*.yaml
+/logs/
+
+# ============= 测试相关 =============
+# JUnit
+.junit/
+
+# 测试覆盖率
+*.exec
+.jacoco/
+coverage/
+.coverage/
+
+# Surefire测试报告
+surefire-reports/
+
+# ============= 数据库文件 =============
+# H2数据库
+*.db
+*.h2.db
+*.trace.db
+
+# SQLite
+*.sqlite
+*.sqlite3
+
+# Derby数据库
+derby.log
+/metastore_db/
+
+# ============= 开发工具配置 =============
+# Eclipse
+.project
+.classpath
+.settings/
+
+# NetBeans
+nbproject/private/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+# VS Code
+.vscode/

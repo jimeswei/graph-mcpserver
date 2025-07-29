@@ -66,11 +66,10 @@ public class GraphServiceOptimized {
         log.debug("Finding relation chain between {} and {}", sourceName, targetName);
 
         String threadId = UUID.randomUUID().toString();
-        String sessionId = UUID.randomUUID().toString();
         
         // 异步调用GraphAnalysisService保存完整图数据到MySQL
         try {
-            graphAnalysisService.relationChain(sourceName, targetName, sessionId, threadId);
+            graphAnalysisService.relationChain(sourceName, targetName, threadId);
         } catch (Exception e) {
             log.warn("Failed to save graph analysis data for relationChain: {}", e.getMessage());
         }
@@ -106,11 +105,10 @@ public class GraphServiceOptimized {
         log.debug("Finding mutual friends for {}", names);
 
         String threadId = UUID.randomUUID().toString();
-        String sessionId = UUID.randomUUID().toString();
         
         // 异步调用GraphAnalysisService保存完整图数据到MySQL
         try {
-            graphAnalysisService.mutualFriend(names, sessionId, threadId);
+            graphAnalysisService.mutualFriend(names, threadId);
         } catch (Exception e) {
             log.warn("Failed to save graph analysis data for mutualFriend: {}", e.getMessage());
         }
@@ -152,11 +150,10 @@ public class GraphServiceOptimized {
         log.debug("Finding common works for {}", names);
 
         String threadId = UUID.randomUUID().toString();
-        String sessionId = UUID.randomUUID().toString();
         
         // 异步调用GraphAnalysisService保存完整图数据到MySQL
         try {
-            graphAnalysisService.dreamTeam(names, sessionId, threadId);
+            graphAnalysisService.dreamTeam(names, threadId);
         } catch (Exception e) {
             log.warn("Failed to save graph analysis data for dreamTeam: {}", e.getMessage());
         }
@@ -186,11 +183,10 @@ public class GraphServiceOptimized {
         log.debug("Finding similarity for {} with relationship type {}", names, relationshipType);
 
         String threadId = UUID.randomUUID().toString();
-        String sessionId = UUID.randomUUID().toString();
         
         // 异步调用GraphAnalysisService保存完整图数据到MySQL
         try {
-            graphAnalysisService.similarity(names, relationshipType, sessionId, threadId);
+            graphAnalysisService.similarity(names, relationshipType, threadId);
         } catch (Exception e) {
             log.warn("Failed to save graph analysis data for similarity: {}", e.getMessage());
         }
@@ -240,11 +236,10 @@ public class GraphServiceOptimized {
         }
 
         String threadId = UUID.randomUUID().toString();
-        String sessionId = UUID.randomUUID().toString();
         
         // 异步调用GraphAnalysisService保存完整图数据到MySQL
         try {
-            graphAnalysisService.commonAncestor(names, maxDepth, sessionId, threadId);
+            graphAnalysisService.commonAncestor(names, maxDepth, threadId);
         } catch (Exception e) {
             log.warn("Failed to save graph analysis data for commonAncestor: {}", e.getMessage());
         }

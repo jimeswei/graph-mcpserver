@@ -215,8 +215,8 @@ public class GraphAnalysisService {
              ".by(coalesce(values('profession'), constant('未知')))" +
              ".by(coalesce(values('education'), constant(''))))";
 
-    public String relationChain(String sourceName, String targetName, String sessionId, String threadId) throws IOException {
-        log.info("开始查询关系链: {} -> {}, sessionId: {}, threadId: {}", sourceName, targetName, sessionId, threadId);
+    public String relationChain(String sourceName, String targetName, String threadId) throws IOException {
+        log.info("开始查询关系链: {} -> {}, threadId: {}", sourceName, targetName, threadId);
         
         try {
             if (sourceName == null || sourceName.trim().isEmpty()) {
@@ -235,20 +235,20 @@ public class GraphAnalysisService {
             ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
             String result = buildRelationChainResult(response, sourceName, targetName);
             
-            graphCacheService.saveCacheRecord(sessionId, threadId, result, "relationChain");
+            graphCacheService.saveCacheRecord(threadId, result, "relationChain");
             
             log.info("关系链查询完成并已缓存到数据库");
             return result;
         } catch (Exception e) {
             log.error("查询关系链失败", e);
             String errorResult = "{\"error\": \"查询关系链失败: " + e.getMessage() + "\"}";
-            graphCacheService.saveCacheRecord(sessionId, threadId, errorResult, "relationChain");
+            graphCacheService.saveCacheRecord(threadId, errorResult, "relationChain");
             throw e;
         }
     }
 
-    public String mutualFriend(List<String> names, String sessionId, String threadId) throws IOException {
-        log.info("开始查询共同好友: {}, sessionId: {}, threadId: {}", names, sessionId, threadId);
+    public String mutualFriend(List<String> names, String threadId) throws IOException {
+        log.info("开始查询共同好友: {}, threadId: {}", names, threadId);
         
         try {
             validateMinimumNames(names, 2);
@@ -263,20 +263,20 @@ public class GraphAnalysisService {
             ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
             String result = buildMutualFriendResult(response);
             
-            graphCacheService.saveCacheRecord(sessionId, threadId, result, "mutualFriend");
+            graphCacheService.saveCacheRecord(threadId, result, "mutualFriend");
             
             log.info("共同好友查询完成并已缓存到数据库");
             return result;
         } catch (Exception e) {
             log.error("查询共同好友失败", e);
             String errorResult = "{\"error\": \"查询共同好友失败: " + e.getMessage() + "\"}";
-            graphCacheService.saveCacheRecord(sessionId, threadId, errorResult, "mutualFriend");
+            graphCacheService.saveCacheRecord(threadId, errorResult, "mutualFriend");
             throw e;
         }
     }
 
-    public String dreamTeam(List<String> names, String sessionId, String threadId) throws IOException {
-        log.info("开始查询共同作品: {}, sessionId: {}, threadId: {}", names, sessionId, threadId);
+    public String dreamTeam(List<String> names, String threadId) throws IOException {
+        log.info("开始查询共同作品: {}, threadId: {}", names, threadId);
         
         try {
             validateMinimumNames(names, 2);
@@ -291,7 +291,7 @@ public class GraphAnalysisService {
                 ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
                 String result = buildDreamTeamResult(response, names);
                 
-                graphCacheService.saveCacheRecord(sessionId, threadId, result, "dreamTeam");
+                graphCacheService.saveCacheRecord(threadId, result, "dreamTeam");
                 log.info("共同作品查询完成并已缓存到数据库");
                 return result;
             } else {
@@ -305,20 +305,20 @@ public class GraphAnalysisService {
                 result.put("data", new ArrayList<>());
                 
                 String resultJson = objectMapper.writeValueAsString(result);
-                graphCacheService.saveCacheRecord(sessionId, threadId, resultJson, "dreamTeam");
+                graphCacheService.saveCacheRecord(threadId, resultJson, "dreamTeam");
                 log.info("多人共同作品查询完成并已缓存到数据库");
                 return resultJson;
             }
         } catch (Exception e) {
             log.error("查询共同作品失败", e);
             String errorResult = "{\"error\": \"查询共同作品失败: " + e.getMessage() + "\"}";
-            graphCacheService.saveCacheRecord(sessionId, threadId, errorResult, "dreamTeam");
+            graphCacheService.saveCacheRecord(threadId, errorResult, "dreamTeam");
             throw e;
         }
     }
 
-    public String similarity(List<String> names, String relationshipType, String sessionId, String threadId) throws IOException {
-        log.info("开始查询相似度: {} with relationship type: {}, sessionId: {}, threadId: {}", names, relationshipType, sessionId, threadId);
+    public String similarity(List<String> names, String relationshipType, String threadId) throws IOException {
+        log.info("开始查询相似度: {} with relationship type: {}, threadId: {}", names, relationshipType, threadId);
         
         try {
             validateMinimumNames(names, 2);
@@ -335,20 +335,20 @@ public class GraphAnalysisService {
             ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
             String result = buildSimilarityResult(response, names, relationshipType);
             
-            graphCacheService.saveCacheRecord(sessionId, threadId, result, "similarity");
+            graphCacheService.saveCacheRecord(threadId, result, "similarity");
             
             log.info("相似度查询完成并已缓存到数据库");
             return result;
         } catch (Exception e) {
             log.error("查询相似度失败", e);
             String errorResult = "{\"error\": \"查询相似度失败: " + e.getMessage() + "\"}";
-            graphCacheService.saveCacheRecord(sessionId, threadId, errorResult, "similarity");
+            graphCacheService.saveCacheRecord(threadId, errorResult, "similarity");
             throw e;
         }
     }
 
-    public String commonAncestor(List<String> names, Integer maxDepth, String sessionId, String threadId) throws IOException {
-        log.info("开始查询共同祖先: {} with maxDepth: {}, sessionId: {}, threadId: {}", names, maxDepth, sessionId, threadId);
+    public String commonAncestor(List<String> names, Integer maxDepth, String threadId) throws IOException {
+        log.info("开始查询共同祖先: {} with maxDepth: {}, threadId: {}", names, maxDepth, threadId);
         
         try {
             validateMinimumNames(names, 2);
@@ -364,20 +364,20 @@ public class GraphAnalysisService {
             ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
             String result = buildCommonAncestorResultNew(response, names, depth);
             
-            graphCacheService.saveCacheRecord(sessionId, threadId, result, "commonAncestor");
+            graphCacheService.saveCacheRecord(threadId, result, "commonAncestor");
             
             log.info("共同祖先查询完成并已缓存到数据库");
             return result;
         } catch (Exception e) {
             log.error("查询共同祖先失败", e);
             String errorResult = "{\"error\": \"查询共同祖先失败: " + e.getMessage() + "\"}";
-            graphCacheService.saveCacheRecord(sessionId, threadId, errorResult, "commonAncestor");
+            graphCacheService.saveCacheRecord(threadId, errorResult, "commonAncestor");
             throw e;
         }
     }
 
-    public Mono<Map<String, Object>> findCommonAncestorByNames(String person1, String person2, String sessionId, String threadId) {
-        log.info("开始异步查询共同祖先: {} 和 {}, sessionId: {}, threadId: {}", person1, person2, sessionId, threadId);
+    public Mono<Map<String, Object>> findCommonAncestorByNames(String person1, String person2, String threadId) {
+        log.info("开始异步查询共同祖先: {} 和 {}, threadId: {}", person1, person2, threadId);
         
         return Mono.fromCallable(() -> {
             try {
@@ -390,14 +390,14 @@ public class GraphAnalysisService {
                 String result = buildCommonAncestorResult(response, Arrays.asList(person1, person2), 3);
                 Map<String, Object> resultMap = objectMapper.readValue(result, Map.class);
                 
-                graphCacheService.saveCacheRecord(sessionId, threadId, result, "commonAncestor");
+                graphCacheService.saveCacheRecord(threadId, result, "commonAncestor");
                 log.info("异步共同祖先查询完成并已缓存到数据库");
                 
                 return resultMap;
             } catch (Exception e) {
                 try {
                     String errorResult = "{\"error\": \"异步查询共同祖先失败: " + e.getMessage() + "\"}";
-                    graphCacheService.saveCacheRecord(sessionId, threadId, errorResult, "commonAncestor");
+                    graphCacheService.saveCacheRecord(threadId, errorResult, "commonAncestor");
                 } catch (Exception ex) {
                     log.error("缓存异步查询错误失败", ex);
                 }
