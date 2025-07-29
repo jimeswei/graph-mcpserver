@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.Arrays;
 
 
 import static com.example.graph.mcp.constant.GraphConstants.*;
@@ -28,32 +29,68 @@ public class GraphServiceOptimized {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
-     * 为结果添加id字段
+     * 创建标准的响应格式
      */
-    private String addIdToResult(String originalResult, String threadId) {
+    private String createStandardResponse(String toolFunction, Object args, String graphData, String threadId) {
         try {
-            if (originalResult == null || originalResult.trim().isEmpty()) {
-                Map<String, Object> result = new HashMap<>();
-                result.put("id", threadId);
-                result.put("data", null);
-                return objectMapper.writeValueAsString(result);
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "COMPLETED");
+            response.put("progress", 100);
+            
+            Map<String, Object> data = new HashMap<>();
+            data.put("id", threadId);
+            data.put("mcp_tool_function", toolFunction);
+            data.put("args", args);
+            
+            // 将图数据库返回的数据放入details字段
+            if (graphData != null && !graphData.trim().isEmpty()) {
+                try {
+                    // 尝试解析为JSON对象
+                    Object details = objectMapper.readValue(graphData, Object.class);
+                    data.put("details", details);
+                } catch (Exception e) {
+                    // 如果不是JSON，直接放入
+                    data.put("details", graphData);
+                }
+            } else {
+                data.put("details", null);
             }
             
-            // 尝试解析为JSON对象
-            try {
-                Map<String, Object> resultMap = objectMapper.readValue(originalResult, Map.class);
-                resultMap.put("id", threadId);
-                return objectMapper.writeValueAsString(resultMap);
-            } catch (Exception e) {
-                // 如果不是JSON对象，包装在data字段中
-                Map<String, Object> wrapper = new HashMap<>();
-                wrapper.put("id", threadId);
-                wrapper.put("data", originalResult);
-                return objectMapper.writeValueAsString(wrapper);
-            }
+            response.put("data", data);
+            response.put("error", null);
+            response.put("message", null);
+            
+            return objectMapper.writeValueAsString(response);
         } catch (Exception e) {
-            log.warn("Failed to add id to result: {}", e.getMessage());
-            return originalResult; // 返回原始结果作为备用
+            log.warn("Failed to create standard response: {}", e.getMessage());
+            // 返回错误格式的响应
+            return createErrorResponse(toolFunction, args, e.getMessage(), threadId);
+        }
+    }
+    
+    /**
+     * 创建错误响应格式
+     */
+    private String createErrorResponse(String toolFunction, Object args, String errorMessage, String threadId) {
+        try {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "FAILED");
+            response.put("progress", 0);
+            
+            Map<String, Object> data = new HashMap<>();
+            data.put("id", threadId);
+            data.put("mcp_tool_function", toolFunction);
+            data.put("args", args);
+            data.put("details", null);
+            
+            response.put("data", data);
+            response.put("error", errorMessage);
+            response.put("message", errorMessage);
+            
+            return objectMapper.writeValueAsString(response);
+        } catch (Exception e) {
+            log.error("Failed to create error response: {}", e.getMessage());
+            return "{\"error\": \"Failed to create response\"}";
         }
     }
 
@@ -90,10 +127,14 @@ public class GraphServiceOptimized {
 
         ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
         
-        // 使用专门的路径结果处理器返回简短数据
-        String optimizedResult = QueryResultHandler.processPathQueryResult(response);
-        String result = QueryResultHandler.truncateResult(optimizedResult);
-        return addIdToResult(result, threadId);
+        // 获取完整的图数据库返回数据，不进行截断
+        String graphData = response.getBody();
+        
+        // 构建参数对象
+        Map<String, Object> args = new HashMap<>();
+        args.put("names", Arrays.asList(sourceName, targetName));
+        
+        return createStandardResponse("relation_chain_between_stars", args, graphData, threadId);
     }
 
     @Tool(name = "mutual_friend_between_stars", description = "查询两个明星之间的共同好友，返回他们共同的好友列表, 参数格式：names: [人名1, 人名2]")
@@ -132,10 +173,14 @@ public class GraphServiceOptimized {
 
         ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
         
-        // 使用专门的共同好友结果处理器返回简短数据
-        String optimizedResult = QueryResultHandler.processMutualFriendsResult(response);
-        String result = QueryResultHandler.truncateResult(optimizedResult);
-        return addIdToResult(result, threadId);
+        // 获取完整的图数据库返回数据，不进行截断
+        String graphData = response.getBody();
+        
+        // 构建参数对象
+        Map<String, Object> args = new HashMap<>();
+        args.put("names", names);
+        
+        return createStandardResponse("mutual_friend_between_stars", args, graphData, threadId);
     }
 
     @Tool(name = "dream_team_common_works", description = "查询多个明星共同参演的电影，返回他们一起合作的作品列表，参数格式：1.names: [人名1, 人名2],2.relationshipType: 合作")
@@ -168,10 +213,14 @@ public class GraphServiceOptimized {
 
         ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
         
-        // 使用通用的图查询结果处理器返回简短数据
-        String optimizedResult = QueryResultHandler.processGraphQueryResult(response);
-        String result = QueryResultHandler.truncateResult(optimizedResult);
-        return addIdToResult(result, threadId);
+        // 获取完整的图数据库返回数据，不进行截断
+        String graphData = response.getBody();
+        
+        // 构建参数对象
+        Map<String, Object> args = new HashMap<>();
+        args.put("names", names);
+        
+        return createStandardResponse("dream_team_common_works", args, graphData, threadId);
     }
 
     @Tool(name = "similarity_between_stars", description = "查询多个明星之间的相似度，基于指定的关系类型，返回他们之间的相似关系,参数格式：1.names: [周星驰, 吴孟达], 2.relationshipType: 合作")
@@ -194,7 +243,12 @@ public class GraphServiceOptimized {
         try {
             // 构建简化的相似度查询 - 查找两个人的共同连接
             if (names.size() != 2) {
-                return addIdToResult("{\"details\": [], \"relations\": [], \"message\": \"相似度分析仅支持两个人\"}"  , threadId);
+                // 构建参数对象
+                Map<String, Object> args = new HashMap<>();
+                args.put("names", names);
+                args.put("relationshipType", relationshipType);
+                
+                return createErrorResponse("similarity_between_stars", args, "相似度分析仅支持两个人", threadId);
             }
             
             String gremlinQuery = String.format(
@@ -218,12 +272,24 @@ public class GraphServiceOptimized {
             
             ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
             
-            // 使用专门的相似度结果处理器
-            String result = QueryResultHandler.processSimilarityQueryResult(response);
-            return addIdToResult(result, threadId);
+            // 获取完整的图数据库返回数据，不进行截断
+            String graphData = response.getBody();
+            
+            // 构建参数对象
+            Map<String, Object> args = new HashMap<>();
+            args.put("names", names);
+            args.put("relationshipType", relationshipType);
+            
+            return createStandardResponse("similarity_between_stars", args, graphData, threadId);
         } catch (Exception e) {
             log.error("Error finding similarity for {}: {}", names, e.getMessage());
-            return addIdToResult(buildErrorResponse("相似度查询失败: " + e.getMessage()), threadId);
+            
+            // 构建参数对象
+            Map<String, Object> args = new HashMap<>();
+            args.put("names", names);
+            args.put("relationshipType", relationshipType);
+            
+            return createErrorResponse("similarity_between_stars", args, "相似度查询失败: " + e.getMessage(), threadId);
         }
     }
 
@@ -256,12 +322,22 @@ public class GraphServiceOptimized {
             
             ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
             
-            // 使用专门的共同祖先结果处理器
-            String result = QueryResultHandler.processCommonAncestorQueryResult(response);
-            return addIdToResult(result, threadId);
+            // 获取完整的图数据库返回数据，不进行截断
+            String graphData = response.getBody();
+            
+            // 构建参数对象
+            Map<String, Object> args = new HashMap<>();
+            args.put("names", names);
+            
+            return createStandardResponse("most_recent_common_ancestor", args, graphData, threadId);
         } catch (Exception e) {
             log.error("Error finding common ancestors for {}: {}", names, e.getMessage());
-            return addIdToResult(buildErrorResponse("共同祖先查询失败: " + e.getMessage()), threadId);
+            
+            // 构建参数对象
+            Map<String, Object> args = new HashMap<>();
+            args.put("names", names);
+            
+            return createErrorResponse("most_recent_common_ancestor", args, "共同祖先查询失败: " + e.getMessage(), threadId);
         }
     }
 
