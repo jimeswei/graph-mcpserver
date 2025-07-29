@@ -215,6 +215,37 @@ public class GraphAnalysisService {
              ".by(coalesce(values('profession'), constant('未知')))" +
              ".by(coalesce(values('education'), constant(''))))";
 
+    private static final String CELEBRITY_RELATIONSHIPS_GREMLIN = 
+        "g.V().hasLabel('celebrity').has('name', within([${names}]))" +
+        ".union(" +
+            // 返回查询的明星节点信息
+            "__.identity()" +
+            ".project('name', 'celebrity_id', 'profession', 'education')" +
+            ".by(values('name'))" +
+            ".by(coalesce(values('celebrity_id'), constant('N/A')))" +
+            ".by(coalesce(values('profession'), constant('未知')))" +
+            ".by(coalesce(values('education'), constant('')))," +
+            
+            // 返回第一圈好友节点信息
+            "__.both('celebrity_celebrity').as('friend')" +
+            ".select('friend')" +
+            ".project('name', 'celebrity_id', 'profession', 'education')" +
+            ".by(values('name'))" +
+            ".by(coalesce(values('celebrity_id'), constant('N/A')))" +
+            ".by(coalesce(values('profession'), constant('未知')))" +
+            ".by(coalesce(values('education'), constant('')))," +
+            
+            // 返回边关系信息
+            "__.bothE('celebrity_celebrity').as('edge')" +
+            ".otherV().as('friend')" +
+            ".select('edge')" +
+            ".project('from', 'to', 'id', 'label')" +
+            ".by(outV().coalesce(values('celebrity_id'), values('name')))" +
+            ".by(inV().coalesce(values('celebrity_id'), values('name')))" +
+            ".by(id())" +
+            ".by(label())" +
+        ")";
+
     public String relationChain(String sourceName, String targetName, String threadId) throws IOException {
         log.info("开始查询关系链: {} -> {}, threadId: {}", sourceName, targetName, threadId);
         
@@ -406,7 +437,121 @@ public class GraphAnalysisService {
         });
     }
 
+    public String queryCelebrityRelationships(List<String> names, String threadId) throws IOException {
+        log.info("开始查询明星关系网络: {}, threadId: {}", names, threadId);
+        
+        try {
+            if (names == null || names.isEmpty()) {
+                throw new IllegalArgumentException("名字列表不能为空");
+            }
+            
+            // 验证每个名字都不为空
+            for (int i = 0; i < names.size(); i++) {
+                String name = names.get(i);
+                if (name == null || name.trim().isEmpty()) {
+                    throw new IllegalArgumentException(String.format("第%d个名字不能为空", i + 1));
+                }
+            }
+            
+            Map<String, Object> params = new HashMap<>();
+            params.put("names", "'" + String.join("','", names) + "'");
+            
+            String gremlinQuery = CELEBRITY_RELATIONSHIPS_GREMLIN;
+            ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
+            String result = buildCelebrityRelationshipsResult(response, names);
+            
+            graphCacheService.saveCacheRecord(threadId, result, "queryCelebrityRelationships");
+            
+            log.info("明星关系网络查询完成并已缓存到数据库");
+            return result;
+        } catch (Exception e) {
+            log.error("查询明星关系网络失败", e);
+            String errorResult = "{\"error\": \"查询明星关系网络失败: " + e.getMessage() + "\"}";
+            graphCacheService.saveCacheRecord(threadId, errorResult, "queryCelebrityRelationships");
+            throw e;
+        }
+    }
+
     // ====== 结果构建方法 ======
+    
+    private String buildCelebrityRelationshipsResult(ResponseEntity<String> response, List<String> names) throws IOException {
+        try {
+            String responseBody = response.getBody();
+            if (responseBody == null || responseBody.trim().isEmpty()) {
+                log.warn("Response body is null or empty for queryCelebrityRelationships");
+                return buildEmptyVerticesEdgesResult();
+            }
+
+            String jsonResult = JsonExtractor.parseResponse(responseBody);
+            if (jsonResult == null || jsonResult.trim().isEmpty() || "[]".equals(jsonResult.trim())) {
+                log.warn("JsonResult is null or empty after parsing: {}", jsonResult);
+                return buildEmptyVerticesEdgesResult();
+            }
+
+            List<Map<String, Object>> queryResults = objectMapper.readValue(jsonResult, List.class);
+            
+            // 检查queryResults是否为null
+            if (queryResults == null || queryResults.isEmpty()) {
+                log.warn("queryResults is null or empty, returning empty result");
+                return buildEmptyVerticesEdgesResult();
+            }
+            
+            // 分离vertices和edges
+            List<Map<String, Object>> vertices = new ArrayList<>();
+            List<Map<String, Object>> edges = new ArrayList<>();
+            Set<String> addedVertices = new HashSet<>();
+            
+            for (Map<String, Object> item : queryResults) {
+                if (item == null) {
+                    log.warn("Encountered null item in queryResults, skipping");
+                    continue;
+                }
+                
+                // 处理顶点数据
+                if (item.containsKey("name")) {
+                    String name = (String) item.get("name");
+                    String celebrityId = (String) item.get("celebrity_id");
+                    String profession = (String) item.get("profession");
+                    String education = (String) item.get("education");
+                    
+                    if (name != null && !addedVertices.contains(name)) {
+                        Map<String, Object> vertex = new HashMap<>();
+                        vertex.put("id", celebrityId != null && !"N/A".equals(celebrityId) ? celebrityId : name);
+                        vertex.put("label", "celebrity");
+                        vertex.put("name", name);
+                        vertex.put("celebrity_id", celebrityId);
+                        vertex.put("profession", profession);
+                        vertex.put("education", education);
+                        vertices.add(vertex);
+                        addedVertices.add(name);
+                    }
+                }
+                
+                // 处理边数据
+                if (item.containsKey("from") && item.containsKey("to") && item.containsKey("id")) {
+                    Map<String, Object> edge = new HashMap<>();
+                    edge.put("from", item.get("from"));
+                    edge.put("to", item.get("to"));
+                    edge.put("label", item.get("label") != null ? item.get("label") : "celebrity_celebrity");
+                    edge.put("id", item.get("id"));
+                    edges.add(edge);
+                }
+            }
+            
+            // 构建最终结果
+            Map<String, Object> result = new HashMap<>();
+            result.put("vertices", vertices);
+            result.put("edges", edges);
+            
+            log.info("Built celebrity relationships result: {} vertices, {} edges", vertices.size(), edges.size());
+            
+            return objectMapper.writeValueAsString(result);
+            
+        } catch (Exception e) {
+            log.error("构建明星关系网络结果失败", e);
+            return buildEmptyVerticesEdgesResult();
+        }
+    }
     
     private String buildCommonAncestorResultNew(ResponseEntity<String> response, List<String> names, int depth) throws IOException {
         try {

@@ -155,4 +155,35 @@ public class GraphMcpHandler {
             return ResponseEntity.badRequest().body(errorResponse);
         }
     }
+
+    @PostMapping(value = "/query_celebrity_relationships", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Object> queryCelebrityRelationships(@RequestBody Map<String, Object> params) {
+        @SuppressWarnings("unchecked")
+        List<String> names = (List<String>) params.get("names");
+
+        if (names == null || names.isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "需要至少一个有效用户名"));
+        }
+
+        try {
+            // 执行查询，获取包含id字段的结果
+            String result = graphService.getNodeEdgeByNames(names);
+            
+            // 解析并返回包含id字段的结果
+            ObjectMapper mapper = new ObjectMapper();
+            Map<String, Object> jsonResult = mapper.readValue(result, Map.class);
+            
+            return ResponseEntity.ok(jsonResult);
+            
+        } catch (Exception e) {
+            log.error("查询明星关系网络失败", e);
+            String errorMessage = e.getMessage();
+            if (errorMessage != null && errorMessage.contains("Unrecognized token")) {
+                errorMessage = "查询结果格式错误，请检查查询语句和参数";
+            }
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "查询明星关系网络失败: " + errorMessage));
+        }
+    }
 }
