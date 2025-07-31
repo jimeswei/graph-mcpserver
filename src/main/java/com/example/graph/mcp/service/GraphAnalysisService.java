@@ -107,7 +107,55 @@ public class GraphAnalysisService {
             ".by(coalesce(values('profession'), constant('未知')))" +
             ".by(coalesce(values('education'), constant('')))," +
             
-            // 获取边关系 - 名人之间的关系
+            // 获取name1到共同作品的边
+            "__.has('name', within([${name1}]))" +
+            ".outE('celebrity_work').as('edge')" +
+            ".inV()" +
+            ".where(__.in('celebrity_work').has('name', within([${name2}])))" +
+            ".select('edge')" +
+            ".project('from', 'to', 'id', 'label')" +
+            ".by(outV().coalesce(values('celebrity_id'), values('name')))" +
+            ".by(inV().coalesce(values('work_id'), values('title'), values('work_name'), id()))" +
+            ".by(id())" +
+            ".by(label())," +
+            
+            // 获取name2到共同作品的边
+            "__.has('name', within([${name2}]))" +
+            ".outE('celebrity_work').as('edge')" +
+            ".inV()" +
+            ".where(__.in('celebrity_work').has('name', within([${name1}])))" +
+            ".select('edge')" +
+            ".project('from', 'to', 'id', 'label')" +
+            ".by(outV().coalesce(values('celebrity_id'), values('name')))" +
+            ".by(inV().coalesce(values('work_id'), values('title'), values('work_name'), id()))" +
+            ".by(id())" +
+            ".by(label())," +
+            
+            // 获取name1到共同朋友的边
+            "__.has('name', within([${name1}]))" +
+            ".bothE('celebrity_celebrity').as('edge')" +
+            ".otherV()" +
+            ".where(__.both('celebrity_celebrity').has('name', within([${name2}])))" +
+            ".select('edge')" +
+            ".project('from', 'to', 'id', 'label')" +
+            ".by(outV().coalesce(values('celebrity_id'), values('name')))" +
+            ".by(inV().coalesce(values('celebrity_id'), values('name')))" +
+            ".by(id())" +
+            ".by(label())," +
+            
+            // 获取name2到共同朋友的边
+            "__.has('name', within([${name2}]))" +
+            ".bothE('celebrity_celebrity').as('edge')" +
+            ".otherV()" +
+            ".where(__.both('celebrity_celebrity').has('name', within([${name1}])))" +
+            ".select('edge')" +
+            ".project('from', 'to', 'id', 'label')" +
+            ".by(outV().coalesce(values('celebrity_id'), values('name')))" +
+            ".by(inV().coalesce(values('celebrity_id'), values('name')))" +
+            ".by(id())" +
+            ".by(label())," +
+            
+            // 获取两个名人之间的直接关系边
             "__.has('name', within([${name1}]))" +
             ".bothE('celebrity_celebrity')" +
             ".where(otherV().has('name', within([${name2}])))" +
