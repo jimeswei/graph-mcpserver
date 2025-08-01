@@ -294,6 +294,53 @@ public class GraphAnalysisService {
             ".by(label())" +
         ")";
 
+    private static final String COMMON_EVENT_GREMLIN = 
+        "g.V().hasLabel('celebrity').has('name', within([${name1}, ${name2}]))" +
+        ".union(" +
+            // 返回查询的两个名人节点
+            "__.identity()" +
+            ".project('name', 'celebrity_id', 'profession', 'education')" +
+            ".by(values('name'))" +
+            ".by(coalesce(values('celebrity_id'), constant('N/A')))" +
+            ".by(coalesce(values('profession'), constant('未知')))" +
+            ".by(coalesce(values('education'), constant('')))," +
+            
+            // 获取共同参与的活动节点信息
+            "__.has('name', within([${name1}]))" +
+            ".bothE('celebrity_event').otherV().as('common_event')" +
+            ".where(__.bothE('celebrity_event').otherV().has('name', within([${name2}])))" +
+            ".select('common_event')" +
+            ".project('name', 'event_id', 'event_type', 'title')" +
+            ".by(coalesce(values('title'), values('event_name'), values('name')))" +
+            ".by(coalesce(values('event_id'), id()))" +
+            ".by(constant('event'))" +
+            ".by(coalesce(values('title'), values('event_name'), values('name')))," +
+            
+            // 获取name1到共同活动的边
+            "__.has('name', within([${name1}]))" +
+            ".bothE('celebrity_event').as('edge')" +
+            ".otherV()" +
+            ".where(__.bothE('celebrity_event').otherV().has('name', within([${name2}])))" +
+            ".select('edge')" +
+            ".project('from', 'to', 'id', 'label')" +
+            ".by(outV().coalesce(values('celebrity_id'), values('name')))" +
+            ".by(inV().coalesce(values('event_id'), values('title'), values('event_name'), id()))" +
+            ".by(id())" +
+            ".by(label())," +
+            
+            // 获取name2到共同活动的边
+            "__.has('name', within([${name2}]))" +
+            ".bothE('celebrity_event').as('edge')" +
+            ".otherV()" +
+            ".where(__.bothE('celebrity_event').otherV().has('name', within([${name1}])))" +
+            ".select('edge')" +
+            ".project('from', 'to', 'id', 'label')" +
+            ".by(outV().coalesce(values('celebrity_id'), values('name')))" +
+            ".by(inV().coalesce(values('event_id'), values('title'), values('event_name'), id()))" +
+            ".by(id())" +
+            ".by(label())" +
+        ")";
+
     public String relationChain(String sourceName, String targetName, String threadId) throws IOException {
         log.info("开始查询关系链: {} -> {}, threadId: {}", sourceName, targetName, threadId);
         
@@ -520,7 +567,153 @@ public class GraphAnalysisService {
         }
     }
 
+    public String commonEventent(List<String> names, String threadId) throws IOException {
+        log.info("开始查询共同参与的活动: {}, threadId: {}", names, threadId);
+        
+        try {
+            validateMinimumNames(names, 2);
+            
+            if (names.size() != 2) {
+                throw new IllegalArgumentException("共同活动查询仅支持两个人");
+            }
+            
+            Map<String, Object> params = new HashMap<>();
+            params.put("name1", "'" + names.get(0) + "'");
+            params.put("name2", "'" + names.get(1) + "'");
+            
+            String gremlinQuery = COMMON_EVENT_GREMLIN;
+            ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
+            String result = buildCommonEventResult(response, names);
+            
+            graphCacheService.saveCacheRecord(threadId, result, "commonEventent");
+            
+            log.info("共同活动查询完成并已缓存到数据库");
+            return result;
+        } catch (Exception e) {
+            log.error("查询共同活动失败", e);
+            String errorResult = "{\"error\": \"查询共同活动失败: " + e.getMessage() + "\"}";
+            graphCacheService.saveCacheRecord(threadId, errorResult, "commonEventent");
+            throw e;
+        }
+    }
+
     // ====== 结果构建方法 ======
+    
+    private String buildCommonEventResult(ResponseEntity<String> response, List<String> names) throws IOException {
+        try {
+            String responseBody = response.getBody();
+            if (responseBody == null || responseBody.trim().isEmpty()) {
+                log.warn("Response body is null or empty for commonEventent");
+                return buildEmptyVerticesEdgesResult();
+            }
+
+            String jsonResult = JsonExtractor.parseResponse(responseBody);
+            if (jsonResult == null || jsonResult.trim().isEmpty() || "[]".equals(jsonResult.trim())) {
+                log.warn("JsonResult is null or empty after parsing: {}", jsonResult);
+                return buildEmptyVerticesEdgesResult();
+            }
+
+            List<Map<String, Object>> queryResults = objectMapper.readValue(jsonResult, List.class);
+            
+            // 检查queryResults是否为null
+            if (queryResults == null || queryResults.isEmpty()) {
+                log.warn("queryResults is null or empty, returning empty result");
+                return buildEmptyVerticesEdgesResult();
+            }
+            
+            // 分离vertices和edges，使用Set去重
+            List<Map<String, Object>> vertices = new ArrayList<>();
+            List<Map<String, Object>> edges = new ArrayList<>();
+            Set<String> addedVertices = new HashSet<>();  // 用于去重vertices
+            Set<String> addedEdges = new HashSet<>();     // 用于去重edges
+            
+            // 收集所有顶点信息（celebrity和event），避免重复
+            for (Map<String, Object> item : queryResults) {
+                if (item == null) {
+                    log.warn("Encountered null item in queryResults, skipping");
+                    continue;
+                }
+                
+                if (item.containsKey("name")) {
+                    String name = (String) item.get("name");
+                    
+                    // 判断是名人节点还是活动节点
+                    if (item.containsKey("event_type") && "event".equals(item.get("event_type"))) {
+                        // 这是活动数据，作为event vertex
+                        String eventId = (String) item.get("event_id");
+                        
+                        // 使用eventId或name作为唯一标识避免重复
+                        String uniqueKey = eventId != null ? eventId : name;
+                        if (name != null && !addedVertices.contains(uniqueKey)) {
+                            Map<String, Object> vertex = new HashMap<>();
+                            vertex.put("id", eventId != null ? eventId : name);
+                            vertex.put("label", "event");
+                            vertex.put("name", name);
+                            vertex.put("title", item.get("title"));
+                            vertices.add(vertex);
+                            addedVertices.add(uniqueKey);
+                        }
+                    } else if (item.containsKey("celebrity_id")) {
+                        // 这是celebrity数据，作为celebrity vertex
+                        String celebrityId = (String) item.get("celebrity_id");
+                        
+                        // 使用name作为唯一标识避免重复
+                        if (name != null && !addedVertices.contains(name)) {
+                            Map<String, Object> vertex = new HashMap<>();
+                            vertex.put("id", celebrityId != null && !"N/A".equals(celebrityId) && !celebrityId.trim().isEmpty() ? celebrityId : name);
+                            vertex.put("label", "celebrity");
+                            vertex.put("name", name);
+                            vertex.put("celebrity_id", celebrityId);
+                            vertex.put("education", item.get("education"));
+                            vertex.put("profession", item.get("profession"));
+                            vertices.add(vertex);
+                            addedVertices.add(name);
+                        }
+                    }
+                }
+            }
+            
+            // 处理边数据，避免重复
+            for (Map<String, Object> item : queryResults) {
+                if (item == null) {
+                    continue;
+                }
+                
+                if (item.containsKey("from") && item.containsKey("to")) {
+                    String from = (String) item.get("from");
+                    String to = (String) item.get("to");
+                    String edgeId = (String) item.get("id");
+                    
+                    // 创建边的唯一标识符，避免重复边
+                    String edgeKey = from + "->" + to;
+                    if (!addedEdges.contains(edgeKey)) {
+                        Map<String, Object> edge = new HashMap<>();
+                        edge.put("from", from);
+                        edge.put("to", to);
+                        edge.put("label", item.get("label") != null ? item.get("label") : "celebrity_event");
+                        if (edgeId != null) {
+                            edge.put("id", edgeId);
+                        }
+                        edges.add(edge);
+                        addedEdges.add(edgeKey);
+                    }
+                }
+            }
+            
+            log.info("CommonEvent result built: {} vertices, {} edges", vertices.size(), edges.size());
+            
+            // 构建最终结果
+            Map<String, Object> result = new HashMap<>();
+            result.put("vertices", vertices);
+            result.put("edges", edges);
+            
+            return objectMapper.writeValueAsString(result);
+            
+        } catch (Exception e) {
+            log.error("构建共同活动结果失败", e);
+            return buildEmptyVerticesEdgesResult();
+        }
+    }
     
     private String buildCelebrityRelationshipsResult(ResponseEntity<String> response, List<String> names) throws IOException {
         try {

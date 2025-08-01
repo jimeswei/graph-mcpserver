@@ -380,6 +380,60 @@ public class GraphServiceOptimized {
     }
 
 
+
+    @Tool(name = "recent_common_celebrity_event", description = "共同参与的活动,参数格式：1.names: [周星驰, 吴孟达]")
+    public String commonEventent(@ToolParam(description = "多个人名，逗号分开，用方括号括起来") List<String> names) throws IOException {
+        validateInput(names);
+        if (names.size() != 2) {
+            throw new IllegalArgumentException("共同活动查询仅支持两个人名");
+        }
+        log.debug("Finding common events for {}", names);
+
+        String threadId = UUID.randomUUID().toString();
+
+        // 异步调用GraphAnalysisService保存完整图数据到MySQL
+        try {
+            graphAnalysisService.commonEventent(names, threadId);
+        } catch (Exception e) {
+            log.warn("Failed to save graph analysis data for commonEventent: {}", e.getMessage());
+        }
+
+        // 执行简短数据查询 - 查询两个明星共同参与的活动
+        Map<String, Object> params = Map.of(
+                "name1", "'" + names.get(0) + "'",
+                "name2", "'" + names.get(1) + "'"
+        );
+
+        // 构建Gremlin查询 - 查找两个明星共同参与的活动
+        String gremlinQuery = String.format(
+                "g.V().has('%s', 'name', ${name1})" +
+                ".bothE('%s').otherV().as('common_event')" +
+                ".where(__.bothE('%s').otherV().has('%s', 'name', ${name2}))" +
+                ".select('common_event')" +
+                ".project('name', 'event_id', 'event_type', 'title')" +
+                ".by(coalesce(values('title'), values('event_name'), values('name')))" +
+                ".by(coalesce(values('event_id'), id()))" +
+                ".by(constant('event'))" +
+                ".by(coalesce(values('title'), values('event_name'), values('name')))",
+                CELEBRITY_LABEL,              // celebrity 标签
+                CELEBRITY_EVENT_RELATIONSHIP, // celebrity_event 关系
+                CELEBRITY_EVENT_RELATIONSHIP, // celebrity_event 关系
+                CELEBRITY_LABEL              // celebrity 标签
+        );
+
+        ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
+
+        // 获取完整的图数据库返回数据，不进行截断
+        String graphData = response.getBody();
+
+        // 构建参数对象
+        Map<String, Object> args = new HashMap<>();
+        args.put("names", names);
+
+        return createStandardResponse("recent_common_celebrity_event", args, graphData, threadId);
+    }
+
+
     /**
      * 构建无祖先结果响应
      */
