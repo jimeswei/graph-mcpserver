@@ -310,7 +310,7 @@ public class GraphAnalysisService {
             ".bothE('celebrity_event').otherV().as('common_event')" +
             ".where(__.bothE('celebrity_event').otherV().has('name', within([${name2}])))" +
             ".select('common_event')" +
-            ".project('name', 'event_id', 'event_type', 'title')" +
+            ".project('event_name', 'event_id', 'event_type', 'title')" +
             ".by(coalesce(values('title'), values('event_name'), values('name')))" +
             ".by(coalesce(values('event_id'), id()))" +
             ".by(constant('event'))" +
@@ -634,41 +634,39 @@ public class GraphAnalysisService {
                     continue;
                 }
                 
-                if (item.containsKey("name")) {
-                    String name = (String) item.get("name");
+                // 判断是名人节点还是活动节点
+                if (item.containsKey("event_type") && "event".equals(item.get("event_type"))) {
+                    // 这是活动数据，作为event vertex
+                    String eventName = (String) item.get("event_name");
+                    String eventId = (String) item.get("event_id");
                     
-                    // 判断是名人节点还是活动节点
-                    if (item.containsKey("event_type") && "event".equals(item.get("event_type"))) {
-                        // 这是活动数据，作为event vertex
-                        String eventId = (String) item.get("event_id");
-                        
-                        // 使用eventId或name作为唯一标识避免重复
-                        String uniqueKey = eventId != null ? eventId : name;
-                        if (name != null && !addedVertices.contains(uniqueKey)) {
-                            Map<String, Object> vertex = new HashMap<>();
-                            vertex.put("id", eventId != null ? eventId : name);
-                            vertex.put("label", "event");
-                            vertex.put("name", name);
-                            vertex.put("title", item.get("title"));
-                            vertices.add(vertex);
-                            addedVertices.add(uniqueKey);
-                        }
-                    } else if (item.containsKey("celebrity_id")) {
-                        // 这是celebrity数据，作为celebrity vertex
-                        String celebrityId = (String) item.get("celebrity_id");
-                        
-                        // 使用name作为唯一标识避免重复
-                        if (name != null && !addedVertices.contains(name)) {
-                            Map<String, Object> vertex = new HashMap<>();
-                            vertex.put("id", celebrityId != null && !"N/A".equals(celebrityId) && !celebrityId.trim().isEmpty() ? celebrityId : name);
-                            vertex.put("label", "celebrity");
-                            vertex.put("name", name);
-                            vertex.put("celebrity_id", celebrityId);
-                            vertex.put("education", item.get("education"));
-                            vertex.put("profession", item.get("profession"));
-                            vertices.add(vertex);
-                            addedVertices.add(name);
-                        }
+                    // 使用eventId或eventName作为唯一标识避免重复
+                    String uniqueKey = eventId != null ? eventId : eventName;
+                    if (eventName != null && !addedVertices.contains(uniqueKey)) {
+                        Map<String, Object> vertex = new HashMap<>();
+                        vertex.put("id", eventId != null ? eventId : eventName);
+                        vertex.put("label", "event");
+                        vertex.put("event_name", eventName);
+                        vertex.put("title", item.get("title"));
+                        vertices.add(vertex);
+                        addedVertices.add(uniqueKey);
+                    }
+                } else if (item.containsKey("name") && item.containsKey("celebrity_id")) {
+                    // 这是celebrity数据，作为celebrity vertex
+                    String name = (String) item.get("name");
+                    String celebrityId = (String) item.get("celebrity_id");
+                    
+                    // 使用name作为唯一标识避免重复
+                    if (name != null && !addedVertices.contains(name)) {
+                        Map<String, Object> vertex = new HashMap<>();
+                        vertex.put("id", celebrityId != null && !"N/A".equals(celebrityId) && !celebrityId.trim().isEmpty() ? celebrityId : name);
+                        vertex.put("label", "celebrity");
+                        vertex.put("name", name);
+                        vertex.put("celebrity_id", celebrityId);
+                        vertex.put("education", item.get("education"));
+                        vertex.put("profession", item.get("profession"));
+                        vertices.add(vertex);
+                        addedVertices.add(name);
                     }
                 }
             }
