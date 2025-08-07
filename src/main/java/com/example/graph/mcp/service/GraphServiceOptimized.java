@@ -404,21 +404,21 @@ public class GraphServiceOptimized {
                 "name2", "'" + names.get(1) + "'"
         );
 
-        // 构建Gremlin查询 - 查找两个明星共同参与的活动
+        // 架构对齐修复 - 使用与GraphAnalysisService一致的查询逻辑，使用常量定义
         String gremlinQuery = String.format(
-                "g.V().has('%s', 'name', ${name1})" +
-                ".bothE('%s').otherV().as('common_event')" +
-                ".where(__.bothE('%s').otherV().has('%s', 'name', ${name2}))" +
-                ".select('common_event')" +
-                ".project('name', 'event_id', 'event_type', 'title')" +
-                ".by(coalesce(values('title'), values('event_name'), values('name')))" +
+                "g.V().hasLabel('%s')" +
+                ".filter(__.bothE('%s').otherV().hasLabel('%s').has('name', ${name1}))" +
+                ".filter(__.bothE('%s').otherV().hasLabel('%s').has('name', ${name2}))" +
+                ".project('event_name', 'event_id', 'event_type', 'title')" +
+                ".by(coalesce(values('event_name'), values('title'), values('name'), constant('未知活动')))" +
                 ".by(coalesce(values('event_id'), id()))" +
                 ".by(constant('event'))" +
-                ".by(coalesce(values('title'), values('event_name'), values('name')))",
+                ".by(coalesce(values('event_name'), values('title'), values('name'), constant('未知活动')))",
+                EVENT_LABEL,                  // event 标签
+                CELEBRITY_EVENT_RELATIONSHIP, // celebrity_event 关系
                 CELEBRITY_LABEL,              // celebrity 标签
                 CELEBRITY_EVENT_RELATIONSHIP, // celebrity_event 关系
-                CELEBRITY_EVENT_RELATIONSHIP, // celebrity_event 关系
-                CELEBRITY_LABEL              // celebrity 标签
+                CELEBRITY_LABEL               // celebrity 标签
         );
 
         ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);

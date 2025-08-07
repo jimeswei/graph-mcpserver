@@ -4,6 +4,7 @@ public class GraphConstants {
         // 节点标签
         public static final String CELEBRITY_LABEL = "celebrity";
         public static final String WORK_LABEL = "work";
+        public static final String EVENT_LABEL = "event";
 
         // 关系类型
         public static final String CELEBRITY_RELATIONSHIP = "celebrity_celebrity";

@@ -305,38 +305,37 @@ public class GraphAnalysisService {
             ".by(coalesce(values('profession'), constant('未知')))" +
             ".by(coalesce(values('education'), constant('')))," +
             
-            // 获取共同参与的活动节点信息
-            "__.has('name', within([${name1}]))" +
-            ".bothE('celebrity_event').otherV().as('common_event')" +
-            ".where(__.bothE('celebrity_event').otherV().has('name', within([${name2}])))" +
-            ".select('common_event')" +
+            // 获取共同参与的活动节点信息 - 直接查找event节点
+            "__.V().hasLabel('event')" +
+            ".filter(__.bothE('celebrity_event').otherV().hasLabel('celebrity').has('name', within([${name1}])))" +
+            ".filter(__.bothE('celebrity_event').otherV().hasLabel('celebrity').has('name', within([${name2}])))" +
             ".project('event_name', 'event_id', 'event_type', 'title')" +
-            ".by(coalesce(values('title'), values('event_name'), values('name')))" +
+            ".by(coalesce(values('event_name'), values('title'), values('name'), constant('未知活动')))" +
             ".by(coalesce(values('event_id'), id()))" +
             ".by(constant('event'))" +
-            ".by(coalesce(values('title'), values('event_name'), values('name')))," +
+            ".by(coalesce(values('event_name'), values('title'), values('name'), constant('未知活动')))," +
             
             // 获取name1到共同活动的边
             "__.has('name', within([${name1}]))" +
             ".bothE('celebrity_event').as('edge')" +
-            ".otherV()" +
+            ".otherV().hasLabel('event')" +
             ".where(__.bothE('celebrity_event').otherV().has('name', within([${name2}])))" +
             ".select('edge')" +
             ".project('from', 'to', 'id', 'label')" +
             ".by(outV().coalesce(values('celebrity_id'), values('name')))" +
-            ".by(inV().coalesce(values('event_id'), values('title'), values('event_name'), id()))" +
+            ".by(inV().coalesce(values('event_id'), values('event_name'), values('title'), id()))" +
             ".by(id())" +
             ".by(label())," +
             
             // 获取name2到共同活动的边
             "__.has('name', within([${name2}]))" +
             ".bothE('celebrity_event').as('edge')" +
-            ".otherV()" +
+            ".otherV().hasLabel('event')" +
             ".where(__.bothE('celebrity_event').otherV().has('name', within([${name1}])))" +
             ".select('edge')" +
             ".project('from', 'to', 'id', 'label')" +
             ".by(outV().coalesce(values('celebrity_id'), values('name')))" +
-            ".by(inV().coalesce(values('event_id'), values('title'), values('event_name'), id()))" +
+            ".by(inV().coalesce(values('event_id'), values('event_name'), values('title'), id()))" +
             ".by(id())" +
             ".by(label())" +
         ")";
