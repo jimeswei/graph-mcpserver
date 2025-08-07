@@ -52,7 +52,7 @@ public class GraphConstants {
                         +
                         ".both('celebrity_celebrity').as('partner')" +
                         ".select('center','partner')" +
-                        ".by(valueMap('celebrity_id','name','profession','company','nationality'))";
+                        ".by(valueMap('name'))";
 
         public static final String EDGES_BY_NAMES_QUERY = "g.V().has('celebrity', 'name', within([${names}])).bothE('celebrity_celebrity')"
                         +
