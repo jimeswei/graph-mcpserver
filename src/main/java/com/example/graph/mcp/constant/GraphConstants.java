@@ -35,7 +35,12 @@ public class GraphConstants {
 
         public static final String DREAM_TEAM_QUERY = "g.V().has('%s', 'name', within([${names}])).aggregate('stars')" +
                         ".V().hasLabel('%s')" +
-                        ".where(__.in('%s', '%s').where(within('stars')).count().is(%d)).dedup().path()";
+                        ".where(__.in('%s', '%s').where(within('stars')).count().is(%d))" +
+                        ".dedup().limit(100)" +
+                        ".project('name', 'title', 'work_type')" +
+                        ".by(coalesce(values('title'), values('work_name'), values('name')))" +
+                        ".by(coalesce(values('title'), values('work_name'), values('name')))" +
+                        ".by(constant('work'))";
 
         public static final String SIMILARITY_QUERY = "g.V().has('%s', 'name', within([${names}]))" +
                         ".as('person').bothE('%s').has('e_type', '${relationshipType}').otherV().as('connected')" +
@@ -52,7 +57,8 @@ public class GraphConstants {
                         +
                         ".both('celebrity_celebrity').as('partner')" +
                         ".select('center','partner')" +
-                        ".by(valueMap('name'))";
+                        ".by(valueMap('name'))" +
+                        ".limit(100)";
 
         public static final String EDGES_BY_NAMES_QUERY = "g.V().has('celebrity', 'name', within([${names}])).bothE('celebrity_celebrity')"
                         +

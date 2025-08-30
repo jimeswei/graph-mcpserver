@@ -43,9 +43,8 @@ public class GraphAnalysisService {
             ".out('celebrity_work').as('common_work')" +
             ".where(__.in('celebrity_work').has('name', within([${name2}])))" +
             ".select('common_work')" +
-            ".project('name', 'work_id', 'work_type', 'title')" +
+            ".project('name', 'work_type', 'title')" +
             ".by(coalesce(values('title'), values('work_name'), values('name')))" +
-            ".by(coalesce(values('work_id'), id()))" +
             ".by(constant('work'))" +
             ".by(coalesce(values('title'), values('work_name'), values('name')))," +
             
@@ -57,7 +56,7 @@ public class GraphAnalysisService {
             ".select('edge')" +
             ".project('from', 'to', 'id', 'label')" +
             ".by(outV().coalesce(values('celebrity_id'), values('name')))" +
-            ".by(inV().coalesce(values('work_id'), values('title'), values('work_name'), id()))" +
+            ".by(inV().coalesce(values('title'), values('work_name'), values('name')))" +
             ".by(id())" +
             ".by(label())," +
             
@@ -69,7 +68,7 @@ public class GraphAnalysisService {
             ".select('edge')" +
             ".project('from', 'to', 'id', 'label')" +
             ".by(outV().coalesce(values('celebrity_id'), values('name')))" +
-            ".by(inV().coalesce(values('work_id'), values('title'), values('work_name'), id()))" +
+            ".by(inV().coalesce(values('title'), values('work_name'), values('name')))" +
             ".by(id())" +
             ".by(label())" +
         ")";
@@ -1141,13 +1140,12 @@ public class GraphAnalysisService {
                 // 判断是名人节点还是作品节点
                 if (item.containsKey("work_type") && "work".equals(item.get("work_type"))) {
                     // 这是作品数据，作为work vertex
-                    String workId = (String) item.get("work_id");
                     
-                    // 使用workId或name作为唯一标识避免重复
-                    String uniqueKey = workId != null ? workId : name;
+                    // 使用name作为唯一标识避免重复
+                    String uniqueKey = name;
                     if (name != null && !addedVertices.contains(uniqueKey)) {
                         Map<String, Object> vertex = new HashMap<>();
-                        vertex.put("id", workId != null ? workId : name);
+                        vertex.put("id", name);
                         vertex.put("label", "work");
                         vertex.put("name", name);
                         vertex.put("title", item.get("title"));
