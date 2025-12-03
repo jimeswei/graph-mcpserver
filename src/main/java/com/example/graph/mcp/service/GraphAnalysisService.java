@@ -1,6 +1,7 @@
 package com.example.graph.mcp.service;
 
 
+import com.example.graph.mcp.config.GremlinQueryProperties;
 import com.example.graph.mcp.util.GremlinQueryUtil;
 import com.example.graph.mcp.util.JsonExtractor;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,320 +25,12 @@ public class GraphAnalysisService {
     @Autowired
     private GraphCacheService graphCacheService;
 
+    @Autowired
+    private GremlinQueryProperties gremlinQueryProperties;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    // ====== 独立的Gremlin查询模板 ======
-    private static final String COMMON_WORKS_GREMLIN = 
-        "g.V().hasLabel('celebrity').has('name', within([${name1}, ${name2}]))" +
-        ".union(" +
-            // 获取原始查询的两个名人的顶点信息
-            "__.identity()" +
-            ".project('name', 'celebrity_id', 'profession', 'education')" +
-            ".by(values('name'))" +
-            ".by(coalesce(values('celebrity_id'), constant('N/A')))" +
-            ".by(coalesce(values('profession'), constant('未知')))" +
-            ".by(coalesce(values('education'), constant('')))," +
-            
-            // 获取共同作品节点信息
-            "__.has('name', within([${name1}]))" +
-            ".out('celebrity_work').as('common_work')" +
-            ".where(__.in('celebrity_work').has('name', within([${name2}])))" +
-            ".select('common_work')" +
-            ".project('name', 'work_type', 'title')" +
-            ".by(coalesce(values('title'), values('work_name'), values('name')))" +
-            ".by(constant('work'))" +
-            ".by(coalesce(values('title'), values('work_name'), values('name')))," +
-            
-            // 获取name1到共同作品的边
-            "__.has('name', within([${name1}]))" +
-            ".outE('celebrity_work').as('edge')" +
-            ".inV()" +
-            ".where(__.in('celebrity_work').has('name', within([${name2}])))" +
-            ".select('edge')" +
-            ".project('from', 'to', 'id', 'label')" +
-            ".by(outV().coalesce(values('celebrity_id'), values('name')))" +
-            ".by(inV().coalesce(values('title'), values('work_name'), values('name')))" +
-            ".by(id())" +
-            ".by(label())," +
-            
-            // 获取name2到共同作品的边
-            "__.has('name', within([${name2}]))" +
-            ".outE('celebrity_work').as('edge')" +
-            ".inV()" +
-            ".where(__.in('celebrity_work').has('name', within([${name1}])))" +
-            ".select('edge')" +
-            ".project('from', 'to', 'id', 'label')" +
-            ".by(outV().coalesce(values('celebrity_id'), values('name')))" +
-            ".by(inV().coalesce(values('title'), values('work_name'), values('name')))" +
-            ".by(id())" +
-            ".by(label())" +
-        ")";
-    
-    private static final String SIMILARITY_ANALYSIS_GREMLIN = 
-        "g.V().hasLabel('celebrity').has('name', within([${name1}, ${name2}]))" +
-        ".union(" +
-            // 返回查询的两个名人节点
-            "__.identity()" +
-            ".project('name', 'celebrity_id', 'profession', 'education')" +
-            ".by(values('name'))" +
-            ".by(coalesce(values('celebrity_id'), constant('N/A')))" +
-            ".by(coalesce(values('profession'), constant('未知')))" +
-            ".by(coalesce(values('education'), constant('')))," +
-            
-            // 共同作品节点
-            "__.has('name', within([${name1}]))" +
-            ".out('celebrity_work').as('common_work')" +
-            ".where(__.in('celebrity_work').has('name', within([${name2}])))" +
-            ".select('common_work')" +
-            ".project('name', 'work_id', 'work_type', 'title')" +
-            ".by(coalesce(values('title'), values('work_name')))" +
-            ".by(coalesce(values('work_id'), id()))" +
-            ".by(constant('work'))" +
-            ".by(coalesce(values('title'), values('work_name')))," +
-            
-            // 共同关系节点
-            "__.has('name', within([${name1}]))" +
-            ".both('celebrity_celebrity').as('common_friend')" +
-            ".where(__.both('celebrity_celebrity').has('name', within([${name2}])))" +
-            ".select('common_friend')" +
-            ".project('name', 'celebrity_id', 'profession', 'education')" +
-            ".by(values('name'))" +
-            ".by(coalesce(values('celebrity_id'), constant('N/A')))" +
-            ".by(coalesce(values('profession'), constant('未知')))" +
-            ".by(coalesce(values('education'), constant('')))," +
-            
-            // 获取name1到共同作品的边
-            "__.has('name', within([${name1}]))" +
-            ".outE('celebrity_work').as('edge')" +
-            ".inV()" +
-            ".where(__.in('celebrity_work').has('name', within([${name2}])))" +
-            ".select('edge')" +
-            ".project('from', 'to', 'id', 'label')" +
-            ".by(outV().coalesce(values('celebrity_id'), values('name')))" +
-            ".by(inV().coalesce(values('work_id'), values('title'), values('work_name'), id()))" +
-            ".by(id())" +
-            ".by(label())," +
-            
-            // 获取name2到共同作品的边
-            "__.has('name', within([${name2}]))" +
-            ".outE('celebrity_work').as('edge')" +
-            ".inV()" +
-            ".where(__.in('celebrity_work').has('name', within([${name1}])))" +
-            ".select('edge')" +
-            ".project('from', 'to', 'id', 'label')" +
-            ".by(outV().coalesce(values('celebrity_id'), values('name')))" +
-            ".by(inV().coalesce(values('work_id'), values('title'), values('work_name'), id()))" +
-            ".by(id())" +
-            ".by(label())," +
-            
-            // 获取name1到共同朋友的边
-            "__.has('name', within([${name1}]))" +
-            ".bothE('celebrity_celebrity').as('edge')" +
-            ".otherV()" +
-            ".where(__.both('celebrity_celebrity').has('name', within([${name2}])))" +
-            ".select('edge')" +
-            ".project('from', 'to', 'id', 'label')" +
-            ".by(outV().coalesce(values('celebrity_id'), values('name')))" +
-            ".by(inV().coalesce(values('celebrity_id'), values('name')))" +
-            ".by(id())" +
-            ".by(label())," +
-            
-            // 获取name2到共同朋友的边
-            "__.has('name', within([${name2}]))" +
-            ".bothE('celebrity_celebrity').as('edge')" +
-            ".otherV()" +
-            ".where(__.both('celebrity_celebrity').has('name', within([${name1}])))" +
-            ".select('edge')" +
-            ".project('from', 'to', 'id', 'label')" +
-            ".by(outV().coalesce(values('celebrity_id'), values('name')))" +
-            ".by(inV().coalesce(values('celebrity_id'), values('name')))" +
-            ".by(id())" +
-            ".by(label())," +
-            
-            // 获取两个名人之间的直接关系边
-            "__.has('name', within([${name1}]))" +
-            ".bothE('celebrity_celebrity')" +
-            ".where(otherV().has('name', within([${name2}])))" +
-            ".project('from', 'to', 'id', 'label')" +
-            ".by(outV().coalesce(values('celebrity_id'), values('name')))" +
-            ".by(inV().coalesce(values('celebrity_id'), values('name')))" +
-            ".by(id())" +
-            ".by(label())" +
-        ")";
-    
-    private static final String COMMON_ANCESTOR_GREMLIN = 
-        "g.V().hasLabel('celebrity').has('name', within([${name1}, ${name2}]))" +
-        ".union(" +
-            // 返回查询的两个名人节点
-            "__.identity()" +
-            ".project('name', 'celebrity_id', 'profession', 'education')" +
-            ".by(values('name'))" +
-            ".by(coalesce(values('celebrity_id'), constant('N/A')))" +
-            ".by(coalesce(values('profession'), constant('未知')))" +
-            ".by(coalesce(values('education'), constant('')))," +
-            
-            // 查找共同祖先节点
-            "__.has('name', within([${name1}]))" +
-            ".repeat(__.in('celebrity_celebrity').simplePath())" +
-            ".emit()" +
-            ".times(${maxDepth})" +
-            ".as('ancestor')" +
-            ".where(" +
-                "__.repeat(__.out('celebrity_celebrity').simplePath())" +
-                ".emit()" +
-                ".times(${maxDepth})" +
-                ".has('name', within([${name2}]))" +
-            ")" +
-            ".select('ancestor')" +
-            ".dedup()" +
-            ".project('name', 'celebrity_id', 'profession', 'education')" +
-            ".by(values('name'))" +
-            ".by(coalesce(values('celebrity_id'), constant('N/A')))" +
-            ".by(coalesce(values('profession'), constant('未知')))" +
-            ".by(coalesce(values('education'), constant('')))," +
-            
-            // 获取相关的边关系
-            "__.has('name', within([${name1}]))" +
-            ".repeat(__.inE('celebrity_celebrity').as('edge').outV().simplePath())" +
-            ".emit()" +
-            ".times(${maxDepth})" +
-            ".where(" +
-                "__.repeat(__.outE('celebrity_celebrity').inV().simplePath())" +
-                ".emit()" +
-                ".times(${maxDepth})" +
-                ".has('name', within([${name2}]))" +
-            ")" +
-            ".select('edge')" +
-            ".dedup()" +
-            ".project('from', 'to', 'id', 'label')" +
-            ".by(outV().coalesce(values('celebrity_id'), values('name')))" +
-            ".by(inV().coalesce(values('celebrity_id'), values('name')))" +
-            ".by(id())" +
-            ".by(label())" +
-        ")";
-    
-    private static final String ENHANCED_MUTUAL_FRIENDS_GREMLIN = 
-        "g.V().hasLabel('celebrity').has('name', ${name1})" +
-        ".both('celebrity_celebrity').as('mutualFriend')" +
-        ".where(__.both('celebrity_celebrity').has('name', ${name2}))" +
-        ".path().as('paths')" +
-        ".union(" +
-            "__.V().hasLabel('celebrity').has('name', within([${name1}, ${name2}]))" +
-            ".project('name', 'education', 'profession', 'celebrity_id')" +
-            ".by(values('name'))" +
-            ".by(coalesce(values('education'), constant('')))" +
-            ".by(coalesce(values('profession'), constant('')))" +
-            ".by(coalesce(values('celebrity_id'), constant('')))," +
-            "select('mutualFriend')" +
-            ".project('name', 'education', 'profession', 'celebrity_id')" +
-            ".by(values('name'))" +
-            ".by(coalesce(values('education'), constant('')))" +
-            ".by(coalesce(values('profession'), constant('')))" +
-            ".by(coalesce(values('celebrity_id'), constant('')))," +
-            "__.V().hasLabel('celebrity').has('name', ${name1})" +
-            ".bothE('celebrity_celebrity')" +
-            ".where(otherV().where(__.both('celebrity_celebrity').has('name', ${name2})))" +
-            ".project('from', 'to', 'id')" +
-            ".by(outV().values('celebrity_id'))" +
-            ".by(inV().values('celebrity_id'))" +
-            ".by(id())," +
-            "__.V().hasLabel('celebrity').has('name', ${name2})" +
-            ".bothE('celebrity_celebrity')" +
-            ".where(otherV().where(__.both('celebrity_celebrity').has('name', ${name1})))" +
-            ".project('from', 'to', 'id')" +
-            ".by(outV().values('celebrity_id'))" +
-            ".by(inV().values('celebrity_id'))" +
-            ".by(id())" +
-        ")";
-
-    private static final String RELATION_CHAIN_GREMLIN = 
-        "g.V().hasLabel('celebrity').has('name', '${sourceName}')" +
-        ".repeat(__.both('celebrity_celebrity').simplePath())" +
-        ".until(__.has('name', '${targetName}'))" +
-        ".limit(1)" +
-        ".path()" +
-        ".by(__.project('name', 'celebrity_id', 'profession', 'education')" +
-             ".by(values('name'))" +
-             ".by(coalesce(values('celebrity_id'), constant('N/A')))" +
-             ".by(coalesce(values('profession'), constant('未知')))" +
-             ".by(coalesce(values('education'), constant(''))))";
-
-    private static final String CELEBRITY_RELATIONSHIPS_GREMLIN = 
-        "g.V().hasLabel('celebrity').has('name', within([${names}]))" +
-        ".union(" +
-            // 返回查询的明星节点信息
-            "__.identity()" +
-            ".project('name', 'celebrity_id', 'profession', 'education')" +
-            ".by(values('name'))" +
-            ".by(coalesce(values('celebrity_id'), constant('N/A')))" +
-            ".by(coalesce(values('profession'), constant('未知')))" +
-            ".by(coalesce(values('education'), constant('')))," +
-            
-            // 返回第一圈好友节点信息
-            "__.both('celebrity_celebrity').as('friend')" +
-            ".select('friend')" +
-            ".project('name', 'celebrity_id', 'profession', 'education')" +
-            ".by(values('name'))" +
-            ".by(coalesce(values('celebrity_id'), constant('N/A')))" +
-            ".by(coalesce(values('profession'), constant('未知')))" +
-            ".by(coalesce(values('education'), constant('')))," +
-            
-            // 返回边关系信息
-            "__.bothE('celebrity_celebrity').as('edge')" +
-            ".otherV().as('friend')" +
-            ".select('edge')" +
-            ".project('from', 'to', 'id', 'label')" +
-            ".by(outV().coalesce(values('celebrity_id'), values('name')))" +
-            ".by(inV().coalesce(values('celebrity_id'), values('name')))" +
-            ".by(id())" +
-            ".by(label())" +
-        ")";
-
-    private static final String COMMON_EVENT_GREMLIN = 
-        "g.V().hasLabel('celebrity').has('name', within([${name1}, ${name2}]))" +
-        ".union(" +
-            // 返回查询的两个名人节点
-            "__.identity()" +
-            ".project('name', 'celebrity_id', 'profession', 'education')" +
-            ".by(values('name'))" +
-            ".by(coalesce(values('celebrity_id'), constant('N/A')))" +
-            ".by(coalesce(values('profession'), constant('未知')))" +
-            ".by(coalesce(values('education'), constant('')))," +
-            
-            // 获取共同参与的活动节点信息 - 直接查找event节点
-            "__.V().hasLabel('event')" +
-            ".filter(__.bothE('celebrity_event').otherV().hasLabel('celebrity').has('name', within([${name1}])))" +
-            ".filter(__.bothE('celebrity_event').otherV().hasLabel('celebrity').has('name', within([${name2}])))" +
-            ".project('event_name', 'event_id', 'event_type', 'title')" +
-            ".by(coalesce(values('event_name'), values('title'), values('name'), constant('未知活动')))" +
-            ".by(coalesce(values('event_id'), id()))" +
-            ".by(constant('event'))" +
-            ".by(coalesce(values('event_name'), values('title'), values('name'), constant('未知活动')))," +
-            
-            // 获取name1到共同活动的边
-            "__.has('name', within([${name1}]))" +
-            ".bothE('celebrity_event').as('edge')" +
-            ".otherV().hasLabel('event')" +
-            ".where(__.bothE('celebrity_event').otherV().has('name', within([${name2}])))" +
-            ".select('edge')" +
-            ".project('from', 'to', 'id', 'label')" +
-            ".by(outV().coalesce(values('celebrity_id'), values('name')))" +
-            ".by(inV().coalesce(values('event_id'), values('event_name'), values('title'), id()))" +
-            ".by(id())" +
-            ".by(label())," +
-            
-            // 获取name2到共同活动的边
-            "__.has('name', within([${name2}]))" +
-            ".bothE('celebrity_event').as('edge')" +
-            ".otherV().hasLabel('event')" +
-            ".where(__.bothE('celebrity_event').otherV().has('name', within([${name1}])))" +
-            ".select('edge')" +
-            ".project('from', 'to', 'id', 'label')" +
-            ".by(outV().coalesce(values('celebrity_id'), values('name')))" +
-            ".by(inV().coalesce(values('event_id'), values('event_name'), values('title'), id()))" +
-            ".by(id())" +
-            ".by(label())" +
-        ")";
+    // ====== Gremlin查询模板已全部移至 gremlin-queries.yml 配置文件 ======
 
     public String relationChain(String sourceName, String targetName, String threadId) throws IOException {
         log.info("开始查询关系链: {} -> {}, threadId: {}", sourceName, targetName, threadId);
@@ -354,8 +47,8 @@ public class GraphAnalysisService {
             params.put("sourceName", sourceName);
             params.put("targetName", targetName);
 
-            String gremlinQuery = RELATION_CHAIN_GREMLIN;
-            
+            String gremlinQuery = gremlinQueryProperties.getRelationChainQuery();
+
             ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
             String result = buildRelationChainResult(response, sourceName, targetName);
             
@@ -382,8 +75,8 @@ public class GraphAnalysisService {
             params.put("name2", "'" + names.get(1) + "'");
 
             // 使用增强版的共同好友查询
-            String gremlinQuery = ENHANCED_MUTUAL_FRIENDS_GREMLIN;
-            
+            String gremlinQuery = gremlinQueryProperties.getEnhancedMutualFriendsQuery();
+
             ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
             String result = buildMutualFriendResult(response);
             
@@ -410,8 +103,8 @@ public class GraphAnalysisService {
                 Map<String, Object> params = new HashMap<>();
                 params.put("name1", "'" + names.get(0) + "'");
                 params.put("name2", "'" + names.get(1) + "'");
-                
-                String gremlinQuery = COMMON_WORKS_GREMLIN;
+
+                String gremlinQuery = gremlinQueryProperties.getCommonWorksQuery();
                 ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
                 String result = buildDreamTeamResult(response, names);
                 
@@ -454,8 +147,8 @@ public class GraphAnalysisService {
             Map<String, Object> params = new HashMap<>();
             params.put("name1", "'" + names.get(0) + "'");
             params.put("name2", "'" + names.get(1) + "'");
-            
-            String gremlinQuery = SIMILARITY_ANALYSIS_GREMLIN;
+
+            String gremlinQuery = gremlinQueryProperties.getSimilarityAnalysisQuery();
             ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
             String result = buildSimilarityResult(response, names, relationshipType);
             
@@ -483,8 +176,8 @@ public class GraphAnalysisService {
             params.put("name1", "'" + names.get(0) + "'");
             params.put("name2", "'" + names.get(1) + "'");
             params.put("maxDepth", String.valueOf(depth));
-            
-            String gremlinQuery = COMMON_ANCESTOR_GREMLIN;
+
+            String gremlinQuery = gremlinQueryProperties.getCommonAncestorQuery();
             ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
             String result = buildCommonAncestorResultNew(response, names, depth);
             
@@ -509,8 +202,9 @@ public class GraphAnalysisService {
                 params.put("name1", "'" + person1 + "'");
                 params.put("name2", "'" + person2 + "'");
                 params.put("maxDepth", "3");
-                
-                ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(COMMON_ANCESTOR_GREMLIN, params);
+
+                ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(
+                    gremlinQueryProperties.getCommonAncestorQuery(), params);
                 String result = buildCommonAncestorResult(response, Arrays.asList(person1, person2), 3);
                 Map<String, Object> resultMap = objectMapper.readValue(result, Map.class);
                 
@@ -548,8 +242,8 @@ public class GraphAnalysisService {
             
             Map<String, Object> params = new HashMap<>();
             params.put("names", "'" + String.join("','", names) + "'");
-            
-            String gremlinQuery = CELEBRITY_RELATIONSHIPS_GREMLIN;
+
+            String gremlinQuery = gremlinQueryProperties.getCelebrityRelationshipsQuery();
             ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
             String result = buildCelebrityRelationshipsResult(response, names);
             
@@ -578,8 +272,8 @@ public class GraphAnalysisService {
             Map<String, Object> params = new HashMap<>();
             params.put("name1", "'" + names.get(0) + "'");
             params.put("name2", "'" + names.get(1) + "'");
-            
-            String gremlinQuery = COMMON_EVENT_GREMLIN;
+
+            String gremlinQuery = gremlinQueryProperties.getCommonEventQuery();
             ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
             String result = buildCommonEventResult(response, names);
             

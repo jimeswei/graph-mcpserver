@@ -1,60 +1,82 @@
 package com.example.graph.mcp.util;
 
-import com.example.graph.mcp.config.GraphApiConfig;
+import com.alibaba.fastjson2.JSON;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.text.StringSubstitutor;
-import org.springframework.http.*;
+import org.apache.hugegraph.driver.GremlinManager;
+import org.apache.hugegraph.driver.HugeClient;
+import org.apache.hugegraph.structure.gremlin.ResultSet;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Gremlin 查询工具类
+ * 使用 HugeGraph Client 执行 Gremlin 查询
+ * @author claude
+ */
 @Slf4j
 @Component
 public class GremlinQueryUtil {
-    private static final RestTemplate restTemplate = new RestTemplate();
-    private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    private final GraphApiConfig graphApiConfig;
+    @Autowired
+    private HugeClient hugeClient;
 
-    public GremlinQueryUtil(GraphApiConfig graphApiConfig) {
-        this.graphApiConfig = graphApiConfig;
-    }
-
+    /**
+     * 执行 Gremlin 查询
+     * @param query Gremlin 查询模板
+     * @param params 查询参数
+     * @return 查询结果的 ResponseEntity
+     * @throws JsonProcessingException JSON 处理异常
+     */
     public ResponseEntity<String> executeGremlinRequest(String query, Map<String, Object> params)
             throws JsonProcessingException {
-        // 直接使用参数进行替换，不再自动添加引号
-        log.info("Original query template: {}", query);
-        log.info("Parameters for substitution: {}", params);
-        
-        StringSubstitutor substitutor = new StringSubstitutor(params);
-        String gremlin = substitutor.replace(query);
-        
-        log.info("Final substituted gremlin query: {}", gremlin);
-        
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("content", gremlin);
-        String json = objectMapper.writeValueAsString(requestBody);
-        log.info("Request JSON: {}", json);
+        try {
+            // 使用参数替换查询模板
+            log.info("Original query template: {}", query);
+            log.info("Parameters for substitution: {}", params);
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<String> entity = new HttpEntity<>(json, headers);
+            StringSubstitutor substitutor = new StringSubstitutor(params);
+            String gremlin = substitutor.replace(query);
 
-        return restTemplate.exchange(
-                graphApiConfig.getBaseUrl(),
-                HttpMethod.POST,
-                entity,
-                String.class);
+            log.info("Final substituted gremlin query: {}", gremlin);
+
+            // 使用 HugeGraph Client 执行 Gremlin 查询
+            GremlinManager gremlinManager = hugeClient.gremlin();
+            ResultSet resultSet = gremlinManager.gremlin(gremlin).execute();
+
+            // 将结果转换为 JSON 字符串
+            String resultJson = JSON.toJSONString(resultSet.data());
+            log.info("Query result size: {}", resultSet.size());
+            log.debug("Query result: {}", resultJson);
+
+            // 包装为 ResponseEntity 以保持与原有接口兼容
+            return ResponseEntity.ok(resultJson);
+
+        } catch (Exception e) {
+            log.error("执行 Gremlin 查询失败: {}", e.getMessage(), e);
+
+            // 构建错误响应
+            String errorJson = String.format("{\"error\": \"%s\", \"message\": \"%s\"}",
+                    e.getClass().getSimpleName(),
+                    e.getMessage());
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorJson);
+        }
     }
 
+    /**
+     * 验证输入的名字列表
+     * @param names 名字列表
+     */
     public static void validateInput(List<String> names) {
         if (names == null || names.size() < 2) {
-            throw new IllegalArgumentException("需要两个有效用户名");
+            throw new IllegalArgumentException("需要至少两个有效用户名");
         }
     }
 }

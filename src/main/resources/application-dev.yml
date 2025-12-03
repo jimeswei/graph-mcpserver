@@ -9,6 +9,21 @@ logging:
       modelcontextprotocol:
         client: DEBUG
         spec: DEBUG
+    org:
+      apache:
+        hugegraph: DEBUG
+
+# HugeGraph 配置 (开发环境)
+hugegraph:
+  url: http://192.168.3.78:8080
+  graph: hugegraph
+  username: ""
+  password: ""
+  timeout: 30
+  max-total: 100
+  max-per-route: 50
+
+# 保留旧配置用于向后兼容
 graph:
   api:
     base-url: http://192.168.3.78:28080/api/v1.2/graph-connections/1/gremlin-query

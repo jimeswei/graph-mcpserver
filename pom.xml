@@ -88,6 +88,20 @@
             <version>8.0.33</version>
         </dependency>
 
+        <!-- HugeGraph Client -->
+        <dependency>
+            <groupId>org.apache.hugegraph</groupId>
+            <artifactId>hugegraph-client</artifactId>
+            <version>1.5.0</version>
+            <exclusions>
+                <!-- 排除错误的 junit 依赖 -->
+                <exclusion>
+                    <groupId>junit</groupId>
+                    <artifactId>junit</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
     </dependencies>
     <dependencyManagement>
         <dependencies>

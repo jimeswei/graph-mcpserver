@@ -53,6 +53,16 @@ logging:
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
 
+# HugeGraph 配置
+hugegraph:
+  url: http://192.168.3.78:8080
+  graph: hugegraph
+  username: ""
+  password: ""
+  timeout: 30
+  max-total: 100
+  max-per-route: 50
+
 
 
 
