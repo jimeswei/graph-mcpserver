@@ -7,6 +7,7 @@ import com.example.graph.mcp.util.JsonExtractor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -17,15 +18,16 @@ import java.util.HashSet;
 
 @Slf4j
 @Service
+@ConditionalOnBean(GremlinQueryUtil.class)
 public class GraphAnalysisService {
 
-    @Autowired
+    @Autowired(required = false)
     private GremlinQueryUtil gremlinQueryUtil;
 
-    @Autowired
+    @Autowired(required = false)
     private GraphCacheService graphCacheService;
 
-    @Autowired
+    @Autowired(required = false)
     private GremlinQueryProperties gremlinQueryProperties;
 
     private final ObjectMapper objectMapper = new ObjectMapper();

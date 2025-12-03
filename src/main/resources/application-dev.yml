@@ -15,6 +15,7 @@ logging:
 
 # HugeGraph 配置 (开发环境)
 hugegraph:
+  enabled: false  # 设置为 false 禁用 HugeGraph Client (外部服务不可用时)
   url: http://192.168.3.78:8080
   graph: hugegraph
   username: ""
@@ -27,7 +28,4 @@ hugegraph:
 graph:
   api:
     base-url: http://192.168.3.78:28080/api/v1.2/graph-connections/1/gremlin-query
-
-
-
 

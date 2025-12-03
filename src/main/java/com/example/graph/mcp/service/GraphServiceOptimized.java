@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -16,14 +17,15 @@ import java.util.Arrays;
 import static com.example.graph.mcp.constant.GraphConstants.*;
 
 @Service
+@ConditionalOnBean(GremlinQueryUtil.class)
 public class GraphServiceOptimized {
 
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(GraphServiceOptimized.class);
 
-    @Autowired
+    @Autowired(required = false)
     private GremlinQueryUtil gremlinQueryUtil;
 
-    @Autowired
+    @Autowired(required = false)
     private GraphAnalysisService graphAnalysisService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();

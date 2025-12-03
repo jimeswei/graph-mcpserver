@@ -8,6 +8,7 @@ import org.apache.hugegraph.driver.GremlinManager;
 import org.apache.hugegraph.driver.HugeClient;
 import org.apache.hugegraph.structure.gremlin.ResultSet;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -22,6 +23,7 @@ import java.util.Map;
  */
 @Slf4j
 @Component
+@ConditionalOnBean(HugeClient.class)
 public class GremlinQueryUtil {
 
     @Autowired

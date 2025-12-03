@@ -5,16 +5,18 @@ import com.example.graph.core.Node;
 import com.example.graph.core.Edge;
 import com.example.graph.mcp.util.GremlinQueryUtil;
 import com.example.graph.mcp.util.QueryResultHandler;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import java.util.*;
 import static com.example.graph.mcp.constant.GraphConstants.*;
 
 @Service
-@RequiredArgsConstructor
+@ConditionalOnBean(GremlinQueryUtil.class)
 public class GraphDataService {
-    private final GremlinQueryUtil gremlinQueryUtil;
+    @Autowired(required = false)
+    private GremlinQueryUtil gremlinQueryUtil;
 
     /**
      * 根据指定节点名称集合，查询这些节点及其搭档关系，组装为Graph对象

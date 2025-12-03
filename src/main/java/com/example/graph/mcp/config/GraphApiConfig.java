@@ -3,6 +3,7 @@ package com.example.graph.mcp.config;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.hugegraph.driver.HugeClient;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -57,6 +58,7 @@ public class GraphApiConfig {
      * @return HugeClient 实例
      */
     @Bean(destroyMethod = "close")
+    @ConditionalOnProperty(name = "hugegraph.enabled", havingValue = "true", matchIfMissing = false)
     public HugeClient hugeClient() {
         log.info("初始化 HugeGraph Client: url={}, graph={}", url, graph);
 

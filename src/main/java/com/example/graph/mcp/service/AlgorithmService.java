@@ -3,6 +3,7 @@ package com.example.graph.mcp.service;
 import com.example.graph.core.Graph;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.util.HashMap;
@@ -16,9 +17,10 @@ import java.util.List;
 
 @Slf4j
 @Service
+@ConditionalOnBean(GraphDataService.class)
 public class AlgorithmService {
 
-    @Autowired
+    @Autowired(required = false)
     private GraphDataService graphDataService;
 
     public String communityDetection(Graph graph) throws IOException {

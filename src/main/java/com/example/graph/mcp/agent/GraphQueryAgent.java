@@ -3,6 +3,7 @@ package com.example.graph.mcp.agent;
 import com.example.graph.mcp.service.GraphServiceOptimized;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -14,9 +15,10 @@ import java.util.regex.Pattern;
  */
 @Slf4j
 @Component
+@ConditionalOnBean(GraphServiceOptimized.class)
 public class GraphQueryAgent {
 
-    @Autowired
+    @Autowired(required = false)
     private GraphServiceOptimized graphService;
 
     // 意图识别模式
