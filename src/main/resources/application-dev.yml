@@ -1,5 +1,11 @@
+spring:
+  config:
+    import:
+      - classpath:gremlin-queries.yml
+
 server:
   port: 5821
+
 logging:
   level:
     com:
@@ -16,7 +22,7 @@ logging:
 # HugeGraph 配置 (开发环境)
 hugegraph:
   enabled: false  # 设置为 false 禁用 HugeGraph Client (外部服务不可用时)
-  url: http://192.168.3.78:8080
+  url: http://192.168.3.78:18080
   graph: hugegraph
   username: ""
   password: ""

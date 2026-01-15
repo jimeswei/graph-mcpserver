@@ -24,7 +24,7 @@ import java.util.Map;
 @Slf4j
 @Component
 @ConditionalOnBean(HugeClient.class)
-public class GremlinQueryUtil {
+public class GremlinQueryUtil implements GremlinQueryExecutor {
 
     @Autowired
     private HugeClient hugeClient;
@@ -36,6 +36,7 @@ public class GremlinQueryUtil {
      * @return 查询结果的 ResponseEntity
      * @throws JsonProcessingException JSON 处理异常
      */
+    @Override
     public ResponseEntity<String> executeGremlinRequest(String query, Map<String, Object> params)
             throws JsonProcessingException {
         try {

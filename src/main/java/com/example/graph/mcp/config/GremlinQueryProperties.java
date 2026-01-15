@@ -79,4 +79,11 @@ public class GremlinQueryProperties {
     public String getCommonEventQuery() {
         return getQuery("common-event");
     }
+
+    /**
+     * 获取图统计查询模板
+     */
+    public String getGraphStatisticsQuery() {
+        return getQuery("graph-statistics");
+    }
 }

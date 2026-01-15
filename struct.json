@@ -1,0 +1,177 @@
+{
+  "vertices": [
+    {
+      "label": "celebrity",
+      "input": {
+        "type": "jdbc",
+        "vendor": "mysql",
+        "driver": "com.mysql.cj.jdbc.Driver",
+        "url": "jdbc:mysql://192.168.3.78:3307",
+        "database": "base_data_graph",
+        "table": "celebrity",
+        "username": "root",
+        "password": "123456",
+        "batch_size": 500
+      },
+      "id": "celebrity_id",
+      "null_values": [
+        "NULL"
+      ],
+      "ignored": [
+        "id",
+        "baike",
+        "resume"
+      ]
+    },
+    {
+      "label": "event",
+      "input": {
+        "type": "jdbc",
+        "vendor": "mysql",
+        "driver": "com.mysql.cj.jdbc.Driver",
+        "url": "jdbc:mysql://192.168.3.78:3307",
+        "database": "base_data_graph",
+        "table": "event",
+        "username": "root",
+        "password": "123456",
+        "batch_size": 500
+      },
+      "id": "event_id",
+      "null_values": [
+        "NULL"
+      ],
+      "ignored": [
+        "id"
+      ]
+    },
+    {
+      "label": "work",
+      "input": {
+        "type": "jdbc",
+        "vendor": "mysql",
+        "driver": "com.mysql.cj.jdbc.Driver",
+        "url": "jdbc:mysql://192.168.3.78:3307",
+        "database": "base_data_graph",
+        "table": "work",
+        "username": "root",
+        "password": "123456",
+        "batch_size": 500
+      },
+      "id": "work_id",
+      "null_values": [
+        "NULL"
+      ],
+      "ignored": [
+        "id",
+        "baike",
+        "resume"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "label": "celebrity_celebrity",
+      "source": [
+        "from"
+      ],
+      "target": [
+        "to"
+      ],
+      "ignored": [
+        "id"
+      ],
+      "input": {
+        "type": "jdbc",
+        "vendor": "mysql",
+        "driver": "com.mysql.cj.jdbc.Driver",
+        "url": "jdbc:mysql://192.168.3.78:3307",
+        "database": "base_data_graph",
+        "table": "celebrity_celebrity",
+        "username": "root",
+        "password": "123456",
+        "batch_size": 500
+      },
+      "null_values": [
+        "NULL"
+      ]
+    },
+    {
+      "label": "celebrity_event",
+      "source": [
+        "from"
+      ],
+      "target": [
+        "to"
+      ],
+      "ignored": [
+        "id"
+      ],
+      "input": {
+        "type": "jdbc",
+        "vendor": "mysql",
+        "driver": "com.mysql.cj.jdbc.Driver",
+        "url": "jdbc:mysql://192.168.3.78:3307",
+        "database": "base_data_graph",
+        "table": "celebrity_event",
+        "username": "root",
+        "password": "123456",
+        "batch_size": 500
+      },
+      "null_values": [
+        "NULL"
+      ]
+    },
+    {
+      "label": "celebrity_work",
+      "source": [
+        "from"
+      ],
+      "target": [
+        "to"
+      ],
+      "ignored": [
+        "id"
+      ],
+      "input": {
+        "type": "jdbc",
+        "vendor": "mysql",
+        "driver": "com.mysql.cj.jdbc.Driver",
+        "url": "jdbc:mysql://192.168.3.78:3307",
+        "database": "base_data_graph",
+        "table": "celebrity_work",
+        "username": "root",
+        "password": "123456",
+        "batch_size": 500
+      },
+      "null_values": [
+        "NULL"
+      ]
+    },
+    {
+      "label": "event_work",
+      "source": [
+        "from"
+      ],
+      "target": [
+        "to"
+      ],
+      "ignored": [
+        "id"
+      ],
+      "input": {
+        "type": "jdbc",
+        "vendor": "mysql",
+        "driver": "com.mysql.cj.jdbc.Driver",
+        "url": "jdbc:mysql://192.168.3.78:3307",
+        "database": "base_data_graph",
+        "table": "event_work",
+        "username": "root",
+        "password": "123456",
+        "batch_size": 500
+      },
+      "null_values": [
+        "NULL"
+      ]
+    }
+  ]
+}

@@ -2,31 +2,35 @@ package com.example.graph.mcp.service;
 
 import com.example.graph.mcp.util.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.Arrays;
-
 
 import static com.example.graph.mcp.constant.GraphConstants.*;
 
+/**
+ * 图分析服务 - 优化版
+ * 提供图谱查询的MCP Tool接口
+ */
+@Slf4j
 @Service
-@ConditionalOnBean(GremlinQueryUtil.class)
 public class GraphServiceOptimized {
 
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(GraphServiceOptimized.class);
-
-    @Autowired(required = false)
-    private GremlinQueryUtil gremlinQueryUtil;
+    @Resource
+    private GremlinQueryExecutor gremlinQueryExecutor;
 
     @Autowired(required = false)
     private GraphAnalysisService graphAnalysisService;
+
+    @Autowired(required = false)
+    private com.example.graph.mcp.config.GremlinQueryProperties gremlinQueryProperties;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -47,14 +51,17 @@ public class GraphServiceOptimized {
             // 将图数据库返回的数据放入details字段
             if (graphData != null && !graphData.trim().isEmpty()) {
                 try {
+                    log.debug("Parsing graph data for {}: {}", toolFunction, graphData);
                     // 尝试解析为JSON对象
                     Object details = objectMapper.readValue(graphData, Object.class);
                     data.put("details", details);
                 } catch (Exception e) {
                     // 如果不是JSON，直接放入
+                    log.warn("Failed to parse graph data as JSON for {}: {}, using raw string", toolFunction, e.getMessage());
                     data.put("details", graphData);
                 }
             } else {
+                log.warn("Graph data is null or empty for {}", toolFunction);
                 data.put("details", null);
             }
 
@@ -122,7 +129,7 @@ public class GraphServiceOptimized {
                 CELEBRITY_RELATIONSHIP     // 关系类型
         );
 
-        ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
+        ResponseEntity<String> response = gremlinQueryExecutor.executeGremlinRequest(gremlinQuery, params);
 
         // 获取完整的图数据库返回数据，不进行截断
         String graphData = response.getBody();
@@ -165,7 +172,7 @@ public class GraphServiceOptimized {
                 CELEBRITY_LABEL           // 终点标签（用于最后的过滤）
         );
 
-        ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
+        ResponseEntity<String> response = gremlinQueryExecutor.executeGremlinRequest(gremlinQuery, params);
 
         // 获取完整的图数据库返回数据，不进行截断
         String graphData = response.getBody();
@@ -194,24 +201,12 @@ public class GraphServiceOptimized {
             log.warn("Failed to save graph analysis data for mutualFriend: {}", e.getMessage());
         }
 
-        // 执行简短数据查询
-        Map<String, Object> params = Map.of(
-                "name0", "'" + names.get(0) + "'",
-                "name1", "'" + names.get(1) + "'"
-        );
+        // 执行简单查询 - 只返回共同好友的名字列表，不返回图数据
+        String simpleQuery = "g.V().hasLabel('celebrity').has('name', " + "'" + names.get(0) + "').both('celebrity_celebrity').as('friend').where(__.both('celebrity_celebrity').has('name', '" + names.get(1) + "')).select('friend').values('name')";
 
-        String gremlinQuery = String.format(MUTUAL_FRIEND_QUERY,
-                CELEBRITY_LABEL,           // 节点标签
-                CELEBRITY_RELATIONSHIP,    // 第一个both关系
-                CELEBRITY_RELATIONSHIP,    // where中的both关系
-                CELEBRITY_LABEL,          // where中的标签
-                CELEBRITY_RELATIONSHIP,    // 第一个inE关系
-                CELEBRITY_LABEL,          // 第一个where条件的标签
-                CELEBRITY_RELATIONSHIP,    // 第二个inE关系
-                CELEBRITY_LABEL           // 第二个where条件的标签
-        );
+        Map<String, Object> params = new HashMap<>();
 
-        ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
+        ResponseEntity<String> response = gremlinQueryExecutor.executeGremlinRequest(simpleQuery, params);
 
         // 获取完整的图数据库返回数据，不进行截断
         String graphData = response.getBody();
@@ -251,7 +246,7 @@ public class GraphServiceOptimized {
                 CELEBRITY_LABEL, WORK_LABEL, CELEBRITY_WORK_RELATIONSHIP,
                 CELEBRITY_EVENT_RELATIONSHIP, names.size());
 
-        ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
+        ResponseEntity<String> response = gremlinQueryExecutor.executeGremlinRequest(gremlinQuery, params);
 
         // 获取完整的图数据库返回数据，不进行截断
         String graphData = response.getBody();
@@ -310,7 +305,7 @@ public class GraphServiceOptimized {
                     "relationshipType", relationshipType
             );
 
-            ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
+            ResponseEntity<String> response = gremlinQueryExecutor.executeGremlinRequest(gremlinQuery, params);
 
             // 获取完整的图数据库返回数据，不进行截断
             String graphData = response.getBody();
@@ -360,7 +355,7 @@ public class GraphServiceOptimized {
             log.info("构建的共同祖先查询: {}", gremlinQuery);
             log.info("查询参数: {}", params);
 
-            ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
+            ResponseEntity<String> response = gremlinQueryExecutor.executeGremlinRequest(gremlinQuery, params);
 
             // 获取完整的图数据库返回数据，不进行截断
             String graphData = response.getBody();
@@ -423,7 +418,7 @@ public class GraphServiceOptimized {
                 CELEBRITY_LABEL               // celebrity 标签
         );
 
-        ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
+        ResponseEntity<String> response = gremlinQueryExecutor.executeGremlinRequest(gremlinQuery, params);
 
         // 获取完整的图数据库返回数据，不进行截断
         String graphData = response.getBody();

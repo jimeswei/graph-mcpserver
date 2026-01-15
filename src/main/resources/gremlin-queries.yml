@@ -282,3 +282,12 @@ gremlin:
         .by(id())
         .by(label())
       )
+
+    # 图统计查询 - 统计图中顶点和边的总数及分类统计
+    graph-statistics: >
+      g.inject(0)
+      .project('total_vertices', 'total_edges', 'vertex_by_label', 'edge_by_label')
+      .by(__.V().count())
+      .by(__.E().count())
+      .by(__.V().groupCount().by(label()))
+      .by(__.E().groupCount().by(label()))

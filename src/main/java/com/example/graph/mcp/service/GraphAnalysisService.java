@@ -1,28 +1,28 @@
 package com.example.graph.mcp.service;
 
-
 import com.example.graph.mcp.config.GremlinQueryProperties;
-import com.example.graph.mcp.util.GremlinQueryUtil;
+import com.example.graph.mcp.util.GremlinQueryExecutor;
 import com.example.graph.mcp.util.JsonExtractor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.HashSet;
 
+/**
+ * 图分析服务
+ * 负责执行完整的图查询并缓存结果到数据库
+ */
 @Slf4j
 @Service
-@ConditionalOnBean(GremlinQueryUtil.class)
 public class GraphAnalysisService {
 
-    @Autowired(required = false)
-    private GremlinQueryUtil gremlinQueryUtil;
+    @Autowired
+    private GremlinQueryExecutor gremlinQueryExecutor;
 
     @Autowired(required = false)
     private GraphCacheService graphCacheService;
@@ -51,7 +51,7 @@ public class GraphAnalysisService {
 
             String gremlinQuery = gremlinQueryProperties.getRelationChainQuery();
 
-            ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
+            ResponseEntity<String> response = gremlinQueryExecutor.executeGremlinRequest(gremlinQuery, params);
             String result = buildRelationChainResult(response, sourceName, targetName);
             
             graphCacheService.saveCacheRecord(threadId, result, "relationChain");
@@ -79,7 +79,7 @@ public class GraphAnalysisService {
             // 使用增强版的共同好友查询
             String gremlinQuery = gremlinQueryProperties.getEnhancedMutualFriendsQuery();
 
-            ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
+            ResponseEntity<String> response = gremlinQueryExecutor.executeGremlinRequest(gremlinQuery, params);
             String result = buildMutualFriendResult(response);
             
             graphCacheService.saveCacheRecord(threadId, result, "mutualFriend");
@@ -107,7 +107,7 @@ public class GraphAnalysisService {
                 params.put("name2", "'" + names.get(1) + "'");
 
                 String gremlinQuery = gremlinQueryProperties.getCommonWorksQuery();
-                ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
+                ResponseEntity<String> response = gremlinQueryExecutor.executeGremlinRequest(gremlinQuery, params);
                 String result = buildDreamTeamResult(response, names);
                 
                 graphCacheService.saveCacheRecord(threadId, result, "dreamTeam");
@@ -151,7 +151,7 @@ public class GraphAnalysisService {
             params.put("name2", "'" + names.get(1) + "'");
 
             String gremlinQuery = gremlinQueryProperties.getSimilarityAnalysisQuery();
-            ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
+            ResponseEntity<String> response = gremlinQueryExecutor.executeGremlinRequest(gremlinQuery, params);
             String result = buildSimilarityResult(response, names, relationshipType);
             
             graphCacheService.saveCacheRecord(threadId, result, "similarity");
@@ -180,7 +180,7 @@ public class GraphAnalysisService {
             params.put("maxDepth", String.valueOf(depth));
 
             String gremlinQuery = gremlinQueryProperties.getCommonAncestorQuery();
-            ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
+            ResponseEntity<String> response = gremlinQueryExecutor.executeGremlinRequest(gremlinQuery, params);
             String result = buildCommonAncestorResultNew(response, names, depth);
             
             graphCacheService.saveCacheRecord(threadId, result, "commonAncestor");
@@ -205,7 +205,7 @@ public class GraphAnalysisService {
                 params.put("name2", "'" + person2 + "'");
                 params.put("maxDepth", "3");
 
-                ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(
+                ResponseEntity<String> response = gremlinQueryExecutor.executeGremlinRequest(
                     gremlinQueryProperties.getCommonAncestorQuery(), params);
                 String result = buildCommonAncestorResult(response, Arrays.asList(person1, person2), 3);
                 Map<String, Object> resultMap = objectMapper.readValue(result, Map.class);
@@ -246,7 +246,7 @@ public class GraphAnalysisService {
             params.put("names", "'" + String.join("','", names) + "'");
 
             String gremlinQuery = gremlinQueryProperties.getCelebrityRelationshipsQuery();
-            ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
+            ResponseEntity<String> response = gremlinQueryExecutor.executeGremlinRequest(gremlinQuery, params);
             String result = buildCelebrityRelationshipsResult(response, names);
             
             graphCacheService.saveCacheRecord(threadId, result, "queryCelebrityRelationships");
@@ -276,7 +276,7 @@ public class GraphAnalysisService {
             params.put("name2", "'" + names.get(1) + "'");
 
             String gremlinQuery = gremlinQueryProperties.getCommonEventQuery();
-            ResponseEntity<String> response = gremlinQueryUtil.executeGremlinRequest(gremlinQuery, params);
+            ResponseEntity<String> response = gremlinQueryExecutor.executeGremlinRequest(gremlinQuery, params);
             String result = buildCommonEventResult(response, names);
             
             graphCacheService.saveCacheRecord(threadId, result, "commonEventent");
@@ -587,14 +587,18 @@ public class GraphAnalysisService {
         }
 
         String jsonResult = JsonExtractor.parseResponse(responseBody);
-        log.debug("Mutual friend raw response: {}", responseBody);
-        log.debug("Mutual friend parsed JSON: {}", jsonResult);
+        log.info("Mutual friend raw response: {}", responseBody);
+        log.info("Mutual friend parsed JSON: {}", jsonResult);
         
         if (jsonResult == null || jsonResult.trim().isEmpty() || "[]".equals(jsonResult.trim())) {
             return buildEmptyMutualFriendResult();
         }
 
         List<Map<String, Object>> queryResults = objectMapper.readValue(jsonResult, List.class);
+        if (queryResults == null) {
+            log.warn("Query results is null after parsing, returning empty result");
+            return buildEmptyMutualFriendResult();
+        }
         log.debug("Query results size: {}", queryResults.size());
         
         // 分离vertices和edges
